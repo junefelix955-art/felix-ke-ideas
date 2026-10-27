@@ -1,0 +1,760 @@
+/* =====================================
+FELIX KE IDEAS - PROFESSIONAL DESIGN
+===================================== */
+
+:root {
+--primary: #123b63;
+--primary-dark: #0a2742;
+--accent: #16a085;
+--background: #f4f7fb;
+--surface: #ffffff;
+--text: #263445;
+--muted: #64748b;
+--border: #e2e8f0;
+--shadow: 0 8px 25px rgba(15, 40, 70, 0.08);
+}
+
+/* General page settings */
+
+* {
+  box-sizing: border-box;
+  }
+
+html {
+scroll-behavior: smooth;
+scroll-padding-top: 90px;
+}
+
+body {
+margin: 0;
+font-family: Arial, Helvetica, sans-serif;
+background: var(--background);
+color: var(--text);
+line-height: 1.7;
+}
+
+h1,
+h2,
+h3 {
+line-height: 1.25;
+color: var(--primary-dark);
+}
+
+p {
+color: var(--muted);
+}
+
+a {
+color: var(--primary);
+text-decoration: none;
+transition: color 0.2s ease;
+}
+
+a:hover {
+color: var(--accent);
+}
+
+/* Navigation bar */
+
+nav {
+display: flex;
+align-items: center;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 15px;
+padding: 18px 7%;
+background: var(--primary-dark);
+box-shadow: var(--shadow);
+}
+
+nav h2 {
+margin: 0;
+color: white;
+font-size: 1.5rem;
+}
+
+nav a {
+color: white !important;
+margin: 0 !important;
+padding: 8px 12px;
+border-radius: 6px;
+font-weight: 600;
+}
+
+nav a:hover {
+color: white;
+background: var(--accent);
+}
+
+/* Homepage welcome section */
+
+main {
+padding: 90px 20px;
+text-align: center;
+background: linear-gradient(135deg, #e5eef8, #ffffff);
+}
+
+main h1 {
+max-width: 800px;
+margin: 0 auto 20px;
+font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+main p {
+max-width: 650px;
+margin: 0 auto 25px;
+font-size: 1.1rem;
+}
+
+/* Buttons */
+
+button,
+.button {
+display: inline-block;
+padding: 12px 24px;
+border: none;
+border-radius: 7px;
+background: var(--accent);
+color: white;
+font-size: 1rem;
+font-weight: 700;
+text-align: center;
+cursor: pointer;
+transition: transform 0.2s ease, background 0.2s ease;
+}
+
+button:hover,
+.button:hover {
+background: #117864;
+color: white;
+transform: translateY(-2px);
+}
+
+/* Shared section layout */
+
+.contact-section,
+.portfolio-section,
+.products-section {
+padding: 70px 7%;
+}
+
+.contact-section > h1,
+.portfolio-section > h1,
+.products-section > h1 {
+margin-top: 0;
+margin-bottom: 12px;
+text-align: center;
+font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.contact-section > p,
+.products-section > p {
+max-width: 700px;
+margin: 0 auto 35px;
+text-align: center;
+}
+
+/* Contact form */
+
+.contact-section form {
+max-width: 650px;
+margin: 30px auto 0;
+padding: 30px;
+border: 1px solid var(--border);
+border-radius: 14px;
+background: var(--surface);
+box-shadow: var(--shadow);
+}
+
+label {
+display: block;
+margin: 15px 0 6px;
+color: var(--primary-dark);
+font-weight: 700;
+}
+
+input,
+textarea {
+width: 100%;
+padding: 12px 14px;
+border: 1px solid #cbd5e1;
+border-radius: 7px;
+background: white;
+color: var(--text);
+font: inherit;
+}
+
+input:focus,
+textarea:focus {
+outline: 2px solid var(--accent);
+outline-offset: 1px;
+border-color: var(--accent);
+}
+
+textarea {
+resize: vertical;
+}
+
+.contact-section form button {
+width: 100%;
+margin-top: 20px;
+}
+
+/* Portfolio cards */
+
+.portfolio-section {
+background: #eaf0f7;
+}
+
+.portfolio-section > h1 {
+margin-bottom: 35px;
+}
+
+.portfolio-section {
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+gap: 22px;
+}
+
+.portfolio-section > h1 {
+grid-column: 1 / -1;
+}
+
+.portfolio-card {
+padding: 25px;
+border: 1px solid var(--border);
+border-radius: 12px;
+background: var(--surface);
+box-shadow: var(--shadow);
+transition: transform 0.2s ease;
+}
+
+.portfolio-card:hover {
+transform: translateY(-4px);
+}
+
+.portfolio-card h2 {
+margin-top: 0;
+}
+
+/* Product cards */
+
+.products-section > h1,
+.products-section > p {
+grid-column: 1 / -1;
+}
+
+.products-section {
+display: grid;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+gap: 22px;
+}
+
+.products-section > h1 {
+margin-bottom: 0;
+}
+
+.products-section > p {
+margin-bottom: 15px;
+}
+
+.product-card {
+padding: 25px;
+border: 1px solid var(--border);
+border-radius: 12px;
+background: var(--surface);
+box-shadow: var(--shadow);
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 14px 32px rgba(15, 40, 70, 0.12);
+}
+
+.product-card h2 {
+margin-top: 0;
+}
+
+.price {
+color: var(--accent);
+font-weight: 700;
+}
+
+.product-card .button {
+margin-top: 10px;
+}
+
+/* Footer */
+
+.site-footer {
+padding: 30px 7%;
+background: var(--primary-dark);
+text-align: center;
+}
+
+.site-footer p {
+color: #dbe6f2;
+}
+
+.site-footer a {
+display: inline-block;
+margin: 6px 10px;
+color: white;
+}
+
+.site-footer a:hover {
+color: #65e6cb;
+}
+
+/* Other pages and forms */
+
+body > h1,
+body > h2 {
+margin: 30px auto;
+}
+
+body > form {
+max-width: 650px;
+margin: 30px auto;
+padding: 25px;
+border-radius: 12px;
+background: var(--surface);
+box-shadow: var(--shadow);
+}
+
+body > form button {
+margin-top: 18px;
+}
+
+/* Mobile and tablet layout */
+
+@media (max-width: 850px) {
+.products-section {
+grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+nav {
+    justify-content: center;
+}
+
+}
+
+@media (max-width: 600px) {
+nav {
+padding: 18px 4%;
+}
+
+nav h2 {
+    width: 100%;
+    text-align: center;
+}
+
+nav a {
+    padding: 7px 8px;
+    font-size: 0.9rem;
+}
+
+main {
+    padding: 60px 20px;
+}
+
+.contact-section,
+.portfolio-section,
+.products-section {
+    padding: 45px 5%;
+}
+
+.portfolio-section,
+.products-section {
+    grid-template-columns: 1fr;
+}
+
+.contact-section form {
+    padding: 20px;
+}
+
+}
+/* Professional welcome section */
+
+.hero {
+min-height: 480px;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 80px 7%;
+background: linear-gradient(135deg, #e5eef8, #ffffff);
+text-align: center;
+}
+
+.hero-content {
+max-width: 850px;
+margin: 0 auto;
+}
+
+.hero-tagline {
+display: inline-block;
+margin-bottom: 15px;
+color: #16a085;
+font-size: 0.9rem;
+font-weight: 700;
+letter-spacing: 2px;
+}
+
+.hero h1 {
+margin: 0 0 22px;
+color: #0a2742;
+font-size: clamp(2.3rem, 6vw, 4rem);
+line-height: 1.15;
+}
+
+.hero h1 span {
+color: #16a085;
+}
+
+.hero-description {
+max-width: 680px;
+margin: 0 auto 30px;
+color: #64748b;
+font-size: 1.1rem;
+line-height: 1.8;
+}
+
+.hero-buttons {
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+gap: 15px;
+}
+
+.hero-buttons .button {
+min-width: 165px;
+}
+
+.hero-buttons .button-outline {
+border: 2px solid #123b63;
+background: transparent;
+color: #123b63;
+}
+
+.hero-buttons .button-outline:hover {
+background: #123b63;
+color: white;
+}
+
+@media (max-width: 600px) {
+.hero {
+min-height: 400px;
+padding: 60px 6%;
+}
+
+.hero-description {
+    font-size: 1rem;
+}
+
+.hero-buttons {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+}
+/* Portfolio section improvements */
+
+.portfolio-section {
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+gap: 24px;
+padding: 75px 7%;
+background: #eaf0f7;
+}
+
+.portfolio-heading {
+grid-column: 1 / -1;
+max-width: 750px;
+margin: 0 auto 15px;
+text-align: center;
+}
+
+.section-label {
+margin-bottom: 10px;
+color: #16a085;
+font-size: 0.85rem;
+font-weight: 700;
+letter-spacing: 2px;
+}
+
+.portfolio-heading h1 {
+margin: 0 0 15px;
+font-size: clamp(2rem, 4vw, 2.8rem);
+}
+
+.portfolio-card {
+padding: 30px;
+border: 1px solid #e2e8f0;
+border-radius: 14px;
+background: #ffffff;
+box-shadow: 0 8px 25px rgba(15, 40, 70, 0.07);
+transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.portfolio-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 14px 32px rgba(15, 40, 70, 0.12);
+}
+
+.portfolio-icon {
+display: flex;
+align-items: center;
+justify-content: center;
+width: 55px;
+height: 55px;
+margin-bottom: 20px;
+border-radius: 12px;
+background: #e4f5f0;
+font-size: 1.8rem;
+}
+
+.portfolio-card h2 {
+margin: 0 0 12px;
+color: #123b63;
+}
+
+.portfolio-card p {
+margin-bottom: 0;
+line-height: 1.8;
+}
+
+@media (max-width: 600px) {
+.portfolio-section {
+grid-template-columns: 1fr;
+padding: 50px 5%;
+}
+
+
+.portfolio-heading {
+    grid-column: 1;
+}
+
+.portfolio-card {
+    padding: 24px;
+}
+
+
+}
+/* Products and services improvements */
+
+.products-section {
+display: grid;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+gap: 24px;
+padding: 75px 7%;
+background: #ffffff;
+}
+
+.products-heading {
+grid-column: 1 / -1;
+max-width: 750px;
+margin: 0 auto 15px;
+text-align: center;
+}
+
+.products-heading h1 {
+margin: 0 0 15px;
+font-size: clamp(2rem, 4vw, 2.8rem);
+}
+
+.products-heading > p:last-child {
+margin-bottom: 0;
+}
+
+.product-card {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 30px;
+border: 1px solid #e2e8f0;
+border-radius: 14px;
+background: #f8fafc;
+box-shadow: 0 8px 25px rgba(15, 40, 70, 0.06);
+transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.product-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 14px 32px rgba(15, 40, 70, 0.12);
+}
+
+.service-icon {
+display: flex;
+align-items: center;
+justify-content: center;
+width: 58px;
+height: 58px;
+margin-bottom: 20px;
+border-radius: 12px;
+background: #e4f5f0;
+font-size: 1.8rem;
+}
+
+.product-card h2 {
+margin: 0 0 12px;
+color: #123b63;
+}
+
+.product-card p {
+line-height: 1.8;
+}
+
+.product-card ul {
+padding-left: 20px;
+color: #64748b;
+line-height: 1.9;
+}
+
+.product-card .price {
+margin-top: auto;
+color: #117864;
+font-weight: 700;
+}
+
+.product-card .button {
+margin-top: 12px;
+}
+
+@media (max-width: 850px) {
+.products-section {
+grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+}
+
+@media (max-width: 600px) {
+.products-section {
+grid-template-columns: 1fr;
+padding: 50px 5%;
+}
+
+.products-heading {
+    grid-column: 1;
+}
+
+.product-card {
+    padding: 24px;
+}
+
+}
+/* =====================================
+MOBILE RESPONSIVENESS IMPROVEMENTS
+===================================== */
+
+/* Prevent wide content from overflowing */
+img,
+video,
+iframe {
+max-width: 100%;
+}
+
+body {
+overflow-wrap: break-word;
+}
+
+/* Make buttons and links easier to tap */
+button,
+.button {
+min-height: 44px;
+}
+
+/* Keep navigation tidy on smaller screens */
+nav {
+row-gap: 12px;
+}
+
+nav a {
+display: inline-block;
+}
+
+/* Tablets and small laptops */
+@media (max-width: 850px) {
+.contact-section,
+.portfolio-section,
+.products-section {
+padding-left: 5%;
+padding-right: 5%;
+}
+
+.portfolio-card,
+.product-card {
+    min-width: 0;
+}
+
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+html {
+scroll-padding-top: 20px;
+}
+
+nav {
+    gap: 8px;
+    padding: 16px 4%;
+}
+
+nav a {
+    padding: 9px 8px;
+    font-size: 0.9rem;
+}
+
+main,
+.hero {
+    padding: 50px 5%;
+}
+
+.contact-section,
+.portfolio-section,
+.products-section {
+    padding: 40px 5%;
+}
+
+.contact-section form {
+    width: 100%;
+    padding: 20px;
+}
+
+input,
+textarea,
+button {
+    font-size: 16px;
+}
+
+.hero-buttons {
+    width: 100%;
+}
+
+.hero-buttons .button {
+    width: 100%;
+}
+
+.portfolio-section,
+.products-section {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.portfolio-heading,
+.products-heading {
+    grid-column: 1;
+}
+
+.portfolio-card,
+.product-card {
+    width: 100%;
+}
+
+.site-footer {
+    padding: 25px 5%;
+}
+
+.site-footer a {
+    margin: 6px;
+}
+
+}

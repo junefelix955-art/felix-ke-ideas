@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Felix KE Ideas | Home</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <nav>
+        <h2>Felix KE Ideas</h2>
+
+        <a href="/" style="color: white; margin: 10px;">Home</a>
+
+        <a href="/about" style="color: white; margin: 10px;">About</a>
+		
+		<a href="#portfolio">Portfolio</a>
+		
+		<a href="#products">Products</a>
+
+        <a href="/contact" style="color: white; margin: 10px;">Contact</a>
+    </nav>
+
+    <main class="hero">
+    <div class="hero-content">
+        <p class="hero-tagline">WELCOME TO FELIX KE IDEAS</p>
+
+    <h1>Turning Ideas Into <span>Digital Solutions.</span></h1>
+
+    <p class="hero-description">
+        I am Felix Atandi, a Mathematical Science with IT student at
+        Maseno University, building practical digital solutions through
+        web development, programming, and data analysis.
+    </p>
+
+    <div class="hero-buttons">
+        <a href="#portfolio" class="button">Explore My Work</a>
+        <a href="#contact" class="button button-outline">Contact Me</a>
+    </div>
+    </div>
+
+
+    </main>
+
+	
+<section class="contact-section" id="contact">
+    <h1>Contact Me</h1>
+    <p>Have a question or business enquiry? Send me a message!</p>
+<form action="{{ url_for('contact') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label for="name">Your Name</label>
+    <input type="text" id="name" name="name" placeholder="Enter your name" maxlength="100" required>
+
+    <label for="email">Your Email</label>
+    <input type="email" id="email" name="email" placeholder="Enter your email" maxlength="254" required>
+
+    <label for="message">Your Message</label>
+    <textarea id="message" name="message" rows="5" placeholder="Write your message here..." maxlength="5000" required></textarea>
+
+    <button type="submit">Send Message</button>
+</form>
+
+</section>
+
+<section class="portfolio-section" id="portfolio">
+    <div class="portfolio-heading">
+        <p class="section-label">GET TO KNOW ME</p>
+        <h1>My Portfolio</h1>
+        <p>My background, technical skills, projects, and professional goals.</p>
+    </div>
+
+<div class="portfolio-card">
+    <div class="portfolio-icon">👨‍💻</div>
+    <h2>About Me</h2>
+    <p>
+        My name is Felix Atandi. I am a third-year Mathematical Science
+        with IT student at Maseno University, interested in applying
+        mathematics and technology to practical problems.
+    </p>
+</div>
+
+<div class="portfolio-card">
+    <div class="portfolio-icon">💻</div>
+    <h2>Technical Skills</h2>
+    <p>
+        I am developing my skills in Python programming, HTML, CSS,
+        Flask, SQLite, Microsoft Excel, R programming, statistics,
+        and data analysis.
+    </p>
+</div>
+
+<div class="portfolio-card">
+    <div class="portfolio-icon">🚀</div>
+    <h2>Current Projects</h2>
+    <p>
+        I am building Felix KE Ideas using Python, Flask, HTML, CSS,
+        and SQLite while learning how to develop functional websites.
+    </p>
+</div>
+
+<div class="portfolio-card">
+    <div class="portfolio-icon">🎯</div>
+    <h2>My Career Goals</h2>
+    <p>
+        My goal is to strengthen my programming and analytical skills,
+        build practical projects, and gain experience through
+        university attachment opportunities.
+    </p>
+</div>
+
+
+</section>
+
+<section class="products-section" id="products">
+    <div class="products-heading">
+        <p class="section-label">WHAT I DO</p>
+        <h1>My Products & Services</h1>
+        <p>
+            Explore my areas of interest and the digital solutions
+            I am developing.
+        </p>
+    </div>
+
+<div class="product-card">
+    <div class="service-icon">🌐</div>
+    <h2>Website Development</h2>
+    <p>
+        Simple, responsive websites built with HTML, CSS, Python,
+        and Flask, with a focus on usability and clean design.
+    </p>
+    <ul>
+        <li>Website structure and layout</li>
+        <li>Responsive design</li>
+        <li>Contact forms</li>
+    </ul>
+    <p class="price">Enquire for pricing</p>
+    <a href="#contact" class="button">Make an Enquiry</a>
+</div>
+
+<div class="product-card">
+    <div class="service-icon">📊</div>
+    <h2>Data Analysis</h2>
+    <p>
+        Developing practical data analysis skills using statistics
+        and tools such as Python, Excel, and R.
+    </p>
+    <ul>
+        <li>Data organisation</li>
+        <li>Statistical analysis</li>
+        <li>Charts and visualisation</li>
+    </ul>
+    <p class="price">Enquire for pricing</p>
+    <a href="#contact" class="button">Make an Enquiry</a>
+</div>
+
+<div class="product-card">
+    <div class="service-icon">💡</div>
+    <h2>Digital Projects</h2>
+    <p>
+        Exploring practical technology ideas and building projects
+        that combine mathematics, programming, and problem-solving.
+    </p>
+    <ul>
+        <li>Project prototypes</li>
+        <li>Programming practice</li>
+        <li>Technical problem-solving</li>
+    </ul>
+    <p class="price">Discuss your idea</p>
+    <a href="#contact" class="button">Discuss a Project</a>
+</div>
+
+</section>
+
+
+</body>
+<footer class="site-footer">
+    <p>&copy; 2026 Felix KE Ideas. All rights reserved.</p>
+    <p>Built with Python, Flask, HTML, and CSS.</p>
+    <a href="/">Home</a>
+    <a href="#portfolio">Portfolio</a>
+    <a href="#products">Products</a>
+    <a href="#contact">Contact</a>
+</footer>
+
+</html>

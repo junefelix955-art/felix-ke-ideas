@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Received</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <h2>Felix KE Ideas</h2>
+    <a href="/">Home</a>
+    <a href="/about">About</a>
+    <a href="/contact">Contact</a>
+</nav>
+
+<main>
+    <h1>Thank You, {{ name }}!</h1>
+    <p>Your message has been received successfully.</p>
+    <p>Thank you for contacting us. We appreciate your interest.</p>
+    <a href="/" class="button">Return to Home</a>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Private environment settings
+.env
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Local virtual environments
+.venv/
+venv/
+
+# Local database containing contact messages
+website.db
