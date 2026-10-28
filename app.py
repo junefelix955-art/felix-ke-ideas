@@ -186,56 +186,51 @@ def login():
 
     return render_template("login.html")
 
-
 # Administrator dashboard
-@app.route("/admin")
-@login_required
+
 @app.route("/admin")
 @login_required
 def admin():
     search = request.args.get("search", "").strip()
+    connection = get_db_connection()
 
-connection = get_db_connection()
+    try:
+        total_messages = connection.execute(
+            "SELECT COUNT(*) FROM messages"
+        ).fetchone()[0]
 
-try:
-    total_messages = connection.execute(
-        "SELECT COUNT(*) FROM messages"
-    ).fetchone()[0]
+        if search:
+            pattern = f"%{search}%"
+            messages = connection.execute(
+                """
+                SELECT id, name, email, message
+                FROM messages
+                WHERE name ILIKE %s OR email ILIKE %s
+                ORDER BY id DESC
+                """,
+                (pattern, pattern),
+            ).fetchall()
+        else:
+            messages = connection.execute(
+                """
+                SELECT id, name, email, message
+                FROM messages
+                ORDER BY id DESC
+                """
+            ).fetchall()
 
-    if search:
-        pattern = f"%{search}%"
-        messages = connection.execute(
-            """
-            SELECT id, name, email, message
-            FROM messages
-            WHERE name ILIKE %s OR email ILIKE %s
-            ORDER BY id DESC
-            """,
-            (pattern, pattern),
-        ).fetchall()
-    else:
-        messages = connection.execute(
-            """
-            SELECT id, name, email, message
-            FROM messages
-            ORDER BY id DESC
-            """
-        ).fetchall()
+        total_search_results = len(messages)
 
-    total_search_results = len(messages)
+    finally:
+        connection.close()
 
-finally:
-    connection.close()
-
-return render_template(
-    "admin.html",
-    messages=messages,
-    total_messages=total_messages,
-    total_search_results=total_search_results,
-    search_term=search,
-)
-
-
+    return render_template(
+        "admin.html",
+        messages=messages,
+        total_messages=total_messages,
+        total_search_results=total_search_results,
+        search_term=search,
+    )
 
 # Delete a contact message
 @app.route("/delete/<int:message_id>", methods=["POST"])
