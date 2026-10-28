@@ -1,9 +1,9 @@
-
 import os
 import hmac
 import secrets
-import sqlite3
 from functools import wraps
+
+import psycopg
 
 from flask import (
     Flask,
@@ -28,7 +28,7 @@ app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH")
 
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "website.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 # Check that important configuration values exist
@@ -43,9 +43,35 @@ if not ADMIN_USERNAME or not ADMIN_PASSWORD_HASH:
 
 # Database connection
 def get_db_connection():
-    connection = sqlite3.connect(DATABASE)
-    connection.row_factory = sqlite3.Row
-    return connection
+    database_url = os.getenv("DATABASE_URL")
+
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not configured.")
+
+    return psycopg.connect(
+        database_url,
+        sslmode="require",
+    )
+def initialize_database():
+    connection = get_db_connection()
+
+    try:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id BIGSERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(254) NOT NULL,
+                message VARCHAR(5000) NOT NULL
+            )
+        """)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+if os.getenv("DATABASE_URL"):
+    initialize_database()
+
 
 
 # CSRF protection for forms that change data
@@ -119,7 +145,7 @@ def contact():
             connection.execute(
                 """
                 INSERT INTO messages (name, email, message)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
                 """,
                 (name, email, message),
             )
@@ -164,48 +190,51 @@ def login():
 # Administrator dashboard
 @app.route("/admin")
 @login_required
+@app.route("/admin")
+@login_required
 def admin():
     search = request.args.get("search", "").strip()
 
-    connection = get_db_connection()
+connection = get_db_connection()
 
-    try:
-        total_messages = connection.execute(
-            "SELECT COUNT(*) FROM messages"
-        ).fetchone()[0]
+try:
+    total_messages = connection.execute(
+        "SELECT COUNT(*) FROM messages"
+    ).fetchone()[0]
 
-        if search:
-            pattern = f"%{search}%"
-            messages = connection.execute(
-                """
-                SELECT id, name, email, message
-                FROM messages
-                WHERE name LIKE ? OR email LIKE ?
-                ORDER BY id DESC
-                """,
-                (pattern, pattern),
-            ).fetchall()
-        else:
-            messages = connection.execute(
-                """
-                SELECT id, name, email, message
-                FROM messages
-                ORDER BY id DESC
-                """
-            ).fetchall()
+    if search:
+        pattern = f"%{search}%"
+        messages = connection.execute(
+            """
+            SELECT id, name, email, message
+            FROM messages
+            WHERE name ILIKE %s OR email ILIKE %s
+            ORDER BY id DESC
+            """,
+            (pattern, pattern),
+        ).fetchall()
+    else:
+        messages = connection.execute(
+            """
+            SELECT id, name, email, message
+            FROM messages
+            ORDER BY id DESC
+            """
+        ).fetchall()
 
-        total_search_results = len(messages)
+    total_search_results = len(messages)
 
-    finally:
-        connection.close()
+finally:
+    connection.close()
 
-    return render_template(
-        "admin.html",
-        messages=messages,
-        total_messages=total_messages,
-        total_search_results=total_search_results,
-        search=search,
-    )
+return render_template(
+    "admin.html",
+    messages=messages,
+    total_messages=total_messages,
+    total_search_results=total_search_results,
+    search_term=search,
+)
+
 
 
 # Delete a contact message
@@ -218,7 +247,7 @@ def delete_message(message_id):
 
     try:
         connection.execute(
-            "DELETE FROM messages WHERE id = ?",
+            "DELETE FROM messages WHERE id = %s",
             (message_id,),
         )
         connection.commit()
