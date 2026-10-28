@@ -4,53 +4,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us | Felix KE Ideas</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+```
+<title>Contact Me | Felix KE Ideas</title>
+
+<meta name="description"
+      content="Contact Felix KE Ideas to share questions, suggestions, feedback, and project ideas.">
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}">
+```
+
 </head>
+
 <body>
 
+<header class="site-header">
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="brand">
+            Felix <span>KE Ideas</span>
+        </a>
+
 ```
-<header>
-    <h1>Felix KE Ideas</h1>
-    <nav>
+    <div class="nav-links">
         <a href="{{ url_for('index') }}">Home</a>
         <a href="{{ url_for('about') }}">About</a>
-        <a href="{{ url_for('contact') }}">Contact</a>
-    </nav>
+        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
+        <a href="{{ url_for('index') }}#products">Services</a>
+        <a href="{{ url_for('contact') }}">Contact Me</a>
+    </div>
+</nav>
+```
+
 </header>
 
-<main>
-    <h2>Contact Us</h2>
-    <p>Have a question, suggestion, or idea? Send us a message.</p>
+<main class="contact-page">
 
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+```
+<!-- CONTACT INTRODUCTION -->
+<section class="contact-hero section-container">
 
-    <form method="POST" action="{{ url_for('contact') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <span class="about-label">GET IN TOUCH</span>
 
-        <label for="name">Your Name</label>
-        <input type="text" id="name" name="name" maxlength="100" required>
+    <h1>Let's Start a Conversation.</h1>
 
-        <label for="email">Your Email</label>
-        <input type="email" id="email" name="email" maxlength="254" required>
+    <p>
+        Have a question, suggestion, project idea, or feedback
+        about Felix KE Ideas? I'd be glad to hear from you.
+        Use the form below to send your message.
+    </p>
 
-        <label for="message">Your Message</label>
-        <textarea id="message" name="message" rows="6" maxlength="5000" required></textarea>
+</section>
 
-        <button type="submit">Send Message</button>
-    </form>
+<!-- CONTACT CONTENT -->
+<section class="contact-layout section-container">
+
+    <!-- CONTACT INFORMATION -->
+    <div class="contact-information">
+
+        <h2>Let's Connect</h2>
+
+        <p>
+            Every meaningful project starts with a conversation.
+            Whether you have a question, an idea to share, or
+            feedback about this website, feel free to get in touch.
+        </p>
+
+        <div class="contact-info-card">
+            <span class="contact-info-icon">💬</span>
+
+            <div>
+                <h3>Questions and Feedback</h3>
+                <p>
+                    Share your suggestions or let me know how
+                    the website could be improved.
+                </p>
+            </div>
+        </div>
+
+        <div class="contact-info-card">
+            <span class="contact-info-icon">💡</span>
+
+            <div>
+                <h3>Project Ideas</h3>
+                <p>
+                    Have an interesting idea or a potential
+                    collaboration in mind? Send me a message.
+                </p>
+            </div>
+        </div>
+
+        <div class="contact-info-card">
+            <span class="contact-info-icon">🎓</span>
+
+            <div>
+                <h3>Learning and Opportunities</h3>
+                <p>
+                    I welcome constructive discussions about
+                    technology, mathematics, programming,
+                    and learning opportunities.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONTACT FORM -->
+    <div class="contact-form-card">
+
+        <h2>Send Me a Message</h2>
+
+        <p class="contact-form-description">
+            Complete the form below. All fields are required.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="contact-flash-messages" aria-live="polite">
+                    {% for category, message in messages %}
+                        <p class="contact-flash-message {{ category }}">
+                            {{ message }}
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST"
+              action="{{ url_for('contact') }}"
+              class="contact-form">
+
+            <input type="hidden"
+                   name="csrf_token"
+                   value="{{ csrf_token() }}">
+
+            <label for="name">Your Name</label>
+
+            <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Enter your name"
+                maxlength="100"
+                autocomplete="name"
+                required
+            >
+
+            <label for="email">Your Email Address</label>
+
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="you@example.com"
+                maxlength="254"
+                autocomplete="email"
+                required
+            >
+
+            <label for="message">Your Message</label>
+
+            <textarea
+                id="message"
+                name="message"
+                rows="6"
+                maxlength="5000"
+                placeholder="Write your message here..."
+                required
+            ></textarea>
+
+            <button type="submit" class="contact-submit-button">
+                Send Message →
+            </button>
+
+            <p class="contact-privacy-note">
+                Your message is submitted to this website for
+                review. Please avoid including passwords or
+                other sensitive information.
+            </p>
+
+        </form>
+
+    </div>
+
+</section>
+```
+
 </main>
 
-<footer>
-    <p>&copy; 2026 Felix KE Ideas. All rights reserved.</p>
-</footer>
+<footer class="site-footer">
+
 ```
+<div class="footer-content">
+    <div class="footer-brand">
+        <h3>Felix KE Ideas</h3>
+        <p>Mathematics, technology, ideas, and continuous growth.</p>
+    </div>
+
+    <div class="footer-links">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('about') }}">About</a>
+        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
+    </div>
+</div>
+
+<p class="footer-bottom">
+    &copy; 2026 Felix KE Ideas. All rights reserved.
+</p>
+```
+
+</footer>
 
 </body>
 </html>

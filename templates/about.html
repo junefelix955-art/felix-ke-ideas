@@ -1,62 +1,341 @@
-
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>About Us | Felix KE Ideas</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+<title>About Me | Felix KE Ideas</title>
+
+<meta name="description"
+      content="Learn about the person behind Felix KE Ideas, a Mathematical Science with IT student exploring programming, statistics, and digital solutions.">
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}">
+
+
 </head>
 
 <body>
 
-<nav>
-    <h2>Felix KE Ideas</h2>
+<header class="site-header">
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="brand">
+            Felix <span>KE Ideas</span>
+        </a>
 
-    <a href="/">Home</a>
-    <a href="/about">About</a>
-    <a href="/contact">Contact</a>
+
+    <div class="nav-links">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('about') }}">About</a>
+        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
+        <a href="{{ url_for('index') }}#products">Services</a>
+        <a href="{{ url_for('contact') }}">Contact Me</a>
+    </div>
 </nav>
 
-<main>
-    <h1>About Felix KE Ideas</h1>
+</header>
+
+<main class="about-page">
+
+
+<!-- INTRODUCTION -->
+<section class="about-hero section-container">
+
+    <div class="about-intro">
+
+        <span class="about-label">GET TO KNOW ME</span>
+
+        <h1>Ideas, Mathematics and Technology.</h1>
+
+        <p class="about-lead">
+            Welcome to Felix KE Ideas, my personal digital space
+            where I share my journey in mathematics, information
+            technology, programming, and continuous learning.
+        </p>
+
+        <p>
+            I am a third-year Mathematical Science with IT student
+            at Maseno University. I am interested in understanding
+            how mathematical thinking and technology can work
+            together to solve practical problems and create useful
+            digital solutions.
+        </p>
+
+        <a href="{{ url_for('contact') }}" class="btn btn-primary">
+            Let's Connect →
+        </a>
+
+    </div>
+
+    <div class="about-highlight">
+        <div class="about-highlight-icon">💡</div>
+
+        <h2>Learning by Building</h2>
+
+        <p>
+            Every project is an opportunity to learn something
+            new, solve a problem, and turn an idea into something
+            useful.
+        </p>
+    </div>
+
+</section>
+
+<!-- MY STORY -->
+<section class="about-story section-container">
+
+    <div class="section-heading">
+        <span class="about-label">MY STORY</span>
+        <h2>The Person Behind Felix KE Ideas</h2>
+    </div>
+
+    <div class="about-story-content">
+
+        <p>
+            My academic journey combines mathematical science
+            with information technology. Through my studies,
+            I am developing analytical thinking, problem-solving
+            skills, and an appreciation for the role that
+            mathematics plays in understanding the world.
+        </p>
+
+        <p>
+            Outside the classroom, I am working to strengthen
+            my practical computing skills. I have been learning
+            Python programming and developing Felix KE Ideas
+            with Flask, HTML, CSS, and PostgreSQL. Building this
+            website gives me an opportunity to apply what I learn
+            and understand how a web application works in practice.
+        </p>
+
+        <p>
+            I believe that improvement comes through consistency,
+            curiosity, practice, and learning from mistakes.
+            My goal is to keep developing my abilities, build
+            meaningful projects, and gain practical experience
+            that connects my education to the world of work.
+        </p>
+
+    </div>
+
+</section>
+
+<!-- EDUCATION -->
+<section class="about-education section-container">
+
+    <div class="section-heading">
+        <span class="about-label">ACADEMIC BACKGROUND</span>
+        <h2>What I Study</h2>
+        <p>
+            My education provides the foundation for my
+            mathematical and technical development.
+        </p>
+    </div>
+
+    <article class="about-info-card">
+
+        <div class="portfolio-icon">🎓</div>
+
+        <div>
+            <h3>Maseno University</h3>
+
+            <p>
+                <strong>Programme:</strong>
+                Mathematical Science with IT
+            </p>
+
+            <p>
+                <strong>Academic Level:</strong>
+                Third year
+            </p>
+
+            <p>
+                My areas of academic interest include mathematics,
+                probability, statistics, analytical reasoning,
+                computational methods, and the application of
+                technology to mathematical problems.
+            </p>
+        </div>
+
+    </article>
+
+</section>
+
+<!-- TECHNICAL INTERESTS -->
+<section class="about-skills section-container">
+
+    <div class="section-heading">
+        <span class="about-label">MY DEVELOPMENT</span>
+        <h2>Skills and Areas of Interest</h2>
+
+        <p>
+            I am building my technical knowledge through
+            coursework, independent practice, and personal projects.
+        </p>
+    </div>
+
+    <div class="about-skills-grid">
+
+        <article class="about-skill-card">
+            <div class="portfolio-icon">🐍</div>
+            <h3>Python Programming</h3>
+            <p>
+                Learning programming fundamentals, functions,
+                problem-solving, and the development of practical
+                applications.
+            </p>
+        </article>
+
+        <article class="about-skill-card">
+            <div class="portfolio-icon">🌐</div>
+            <h3>Web Development</h3>
+            <p>
+                Exploring HTML, CSS, Flask, and PostgreSQL
+                to develop interactive websites and
+                database-backed applications.
+            </p>
+        </article>
+
+        <article class="about-skill-card">
+            <div class="portfolio-icon">📊</div>
+            <h3>Statistics and Data Analysis</h3>
+            <p>
+                Developing an interest in statistical methods,
+                interpreting data, and using Excel, R, and
+                Python for analytical work.
+            </p>
+        </article>
+
+        <article class="about-skill-card">
+            <div class="portfolio-icon">📐</div>
+            <h3>Mathematics and Modelling</h3>
+            <p>
+                Exploring how mathematical reasoning,
+                computational mathematics, and modelling
+                can help investigate practical problems.
+            </p>
+        </article>
+
+    </div>
+
+</section>
+
+<!-- CURRENT PROJECT -->
+<section class="about-project section-container">
+
+    <div class="about-project-content">
+
+        <span class="about-label">WHAT I AM BUILDING</span>
+
+        <h2>Felix KE Ideas</h2>
+
+        <p>
+            Felix KE Ideas is my first deployed website and
+            an important part of my learning journey. I am
+            developing it with Python and Flask, using HTML
+            and CSS for the interface and PostgreSQL to store
+            contact messages.
+        </p>
+
+        <p>
+            The project includes multiple pages, a contact form,
+            and an administrator dashboard. I am continuing to
+            improve its appearance, functionality, usability,
+            and security as I develop my skills.
+        </p>
+
+        <a href="https://felix-ke-ideas.onrender.com/"
+           class="btn btn-primary"
+           target="_blank"
+           rel="noopener noreferrer">
+            Visit My Website →
+        </a>
+
+    </div>
+
+</section>
+
+<!-- FUTURE GOALS -->
+<section class="about-goals section-container">
+
+    <div class="section-heading">
+        <span class="about-label">LOOKING AHEAD</span>
+        <h2>My Career Objectives</h2>
+    </div>
+
+    <div class="about-goals-grid">
+
+        <article class="about-goal-card">
+            <h3>📚 Academic Growth</h3>
+            <p>
+                Strengthen my understanding of mathematical
+                concepts and improve my ability to apply
+                them to challenging problems.
+            </p>
+        </article>
+
+        <article class="about-goal-card">
+            <h3>💻 Practical Experience</h3>
+            <p>
+                Build projects that demonstrate my developing
+                skills and help me gain practical experience
+                through university attachment and other
+                learning opportunities.
+            </p>
+        </article>
+
+        <article class="about-goal-card">
+            <h3>🚀 Continuous Improvement</h3>
+            <p>
+                Continue learning programming, statistics,
+                and data analysis while exploring opportunities
+                to create useful technology-based solutions.
+            </p>
+        </article>
+
+    </div>
+
+</section>
+
+<!-- CONTACT -->
+<section class="about-contact section-container">
+
+    <h2>Have an Idea to Share?</h2>
 
     <p>
-        Welcome to Felix KE Ideas, a platform built to share ideas,
-        creativity, knowledge, and useful information.
+        I welcome constructive feedback, ideas, and opportunities
+        to learn, collaborate, and grow.
     </p>
 
-    <h2>Our Mission</h2>
+    <a href="{{ url_for('contact') }}" class="btn btn-primary">
+        Contact Me →
+    </a>
 
-    <p>
-        Our mission is to explore creative ideas, develop useful digital
-        solutions, and provide visitors with an enjoyable online experience.
-    </p>
+</section>
 
-    <h2>What You Can Expect</h2>
-
-    <p>
-        Felix KE Ideas will continue to grow as we introduce new content,
-        projects, and features to help visitors discover useful information.
-    </p>
-
-    <h2>Get in Touch</h2>
-
-    <p>
-        Have a question or an idea to share? Visit our contact page
-        and send us a message.
-    </p>
-
-    <p>
-        <a href="/contact" class="button">Contact Us</a>
-    </p>
 </main>
 
 <footer class="site-footer">
-    <p>&copy; 2026 Felix KE Ideas. All rights reserved.</p>
+
+<div class="footer-content">
+    <div class="footer-brand">
+        <h3>Felix KE Ideas</h3>
+        <p>Mathematics, technology, ideas, and continuous growth.</p>
+    </div>
+
+    <div class="footer-links">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
+        <a href="{{ url_for('contact') }}">Contact</a>
+    </div>
+</div>
+
+<p class="footer-bottom">
+    &copy; 2026 Felix KE Ideas. All rights reserved.
+</p>
+
 </footer>
 
 </body>
