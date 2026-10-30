@@ -1,219 +1,35 @@
-<!DOCTYPE html>
-
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-```
-<title>Contact Me | Felix KE Ideas</title>
-
-<meta name="description"
-      content="Contact Felix KE Ideas to share questions, suggestions, feedback, and project ideas.">
-
-<link rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}">
-```
-
-</head>
-
-<body>
-
-<header class="site-header">
-    <nav class="navbar">
-        <a href="{{ url_for('index') }}" class="brand">
-            Felix <span>KE Ideas</span>
-        </a>
-
-```
-    <div class="nav-links">
-        <a href="{{ url_for('index') }}">Home</a>
-        <a href="{{ url_for('about') }}">About</a>
-        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
-        <a href="{{ url_for('index') }}#products">Services</a>
-        <a href="{{ url_for('contact') }}">Contact Me</a>
-    </div>
-</nav>
-```
-
-</header>
-
-<main class="contact-page">
-
-```
-<!-- CONTACT INTRODUCTION -->
+{% extends "base.html" %}
+{% block title %}Contact | Felix KE Ideas{% endblock %}
+{% block description %}Contact Felix KE Ideas by email, WhatsApp or the contact form.{% endblock %}
+{% block content %}
+<div class="contact-page">
 <section class="contact-hero section-container">
-
-    <span class="about-label">GET IN TOUCH</span>
-
-    <h1>Let's Start a Conversation.</h1>
-
-    <p>
-        Have a question, suggestion, project idea, or feedback
-        about Felix KE Ideas? I'd be glad to hear from you.
-        Use the form below to send your message.
-    </p>
-
+  <h1>Let's talk.</h1>
+  <p>Questions, project ideas or feedback are all welcome. Pick whichever way suits you.</p>
 </section>
-
-<!-- CONTACT CONTENT -->
 <section class="contact-layout section-container">
-
-    <!-- CONTACT INFORMATION -->
-    <div class="contact-information">
-
-        <h2>Let's Connect</h2>
-
-        <p>
-            Every meaningful project starts with a conversation.
-            Whether you have a question, an idea to share, or
-            feedback about this website, feel free to get in touch.
-        </p>
-
-        <div class="contact-info-card">
-            <span class="contact-info-icon">💬</span>
-
-            <div>
-                <h3>Questions and Feedback</h3>
-                <p>
-                    Share your suggestions or let me know how
-                    the website could be improved.
-                </p>
-            </div>
-        </div>
-
-        <div class="contact-info-card">
-            <span class="contact-info-icon">💡</span>
-
-            <div>
-                <h3>Project Ideas</h3>
-                <p>
-                    Have an interesting idea or a potential
-                    collaboration in mind? Send me a message.
-                </p>
-            </div>
-        </div>
-
-        <div class="contact-info-card">
-            <span class="contact-info-icon">🎓</span>
-
-            <div>
-                <h3>Learning and Opportunities</h3>
-                <p>
-                    I welcome constructive discussions about
-                    technology, mathematics, programming,
-                    and learning opportunities.
-                </p>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- CONTACT FORM -->
-    <div class="contact-form-card">
-
-        <h2>Send Me a Message</h2>
-
-        <p class="contact-form-description">
-            Complete the form below. All fields are required.
-        </p>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="contact-flash-messages" aria-live="polite">
-                    {% for category, message in messages %}
-                        <p class="contact-flash-message {{ category }}">
-                            {{ message }}
-                        </p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST"
-              action="{{ url_for('contact') }}"
-              class="contact-form">
-
-            <input type="hidden"
-                   name="csrf_token"
-                   value="{{ csrf_token() }}">
-
-            <label for="name">Your Name</label>
-
-            <input
-                type="text"
-                id="name"
-                name="name"
-                placeholder="Enter your name"
-                maxlength="100"
-                autocomplete="name"
-                required
-            >
-
-            <label for="email">Your Email Address</label>
-
-            <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="you@example.com"
-                maxlength="254"
-                autocomplete="email"
-                required
-            >
-
-            <label for="message">Your Message</label>
-
-            <textarea
-                id="message"
-                name="message"
-                rows="6"
-                maxlength="5000"
-                placeholder="Write your message here..."
-                required
-            ></textarea>
-
-            <button type="submit" class="contact-submit-button">
-                Send Message →
-            </button>
-
-            <p class="contact-privacy-note">
-                Your message is submitted to this website for
-                review. Please avoid including passwords or
-                other sensitive information.
-            </p>
-
-        </form>
-
-    </div>
-
+  <div class="contact-information">
+    <h2>Reach me directly</h2>
+    {% if contact_email %}<div class="contact-info-card"><div><h3>Email</h3><p><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p></div></div>{% endif %}
+    {% if whatsapp_number %}<div class="contact-info-card"><div><h3>WhatsApp</h3><p><a href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener noreferrer">Message me on WhatsApp</a></p></div></div>{% endif %}
+    <div class="contact-info-card"><div><h3>Location</h3><p>Maseno, Kenya</p></div></div>
+  </div>
+  <div class="contact-form-card">
+    <h2>Send a message</h2>
+    <p class="contact-form-description">All fields are required. I reply by email.</p>
+    <form method="POST" action="{{ url_for('contact') }}" class="contact-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="hp-field" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
+      <label for="name">Your name</label>
+      <input type="text" id="name" name="name" maxlength="100" autocomplete="name" value="{{ form.get('name','') }}" required>
+      <label for="email">Your email</label>
+      <input type="email" id="email" name="email" maxlength="254" autocomplete="email" placeholder="you@example.com" value="{{ form.get('email','') }}" required>
+      <label for="message">Your message</label>
+      <textarea id="message" name="message" rows="6" maxlength="5000" required>{{ form.get('message','') }}</textarea>
+      <button type="submit" class="contact-submit-button">Send message</button>
+      <p class="contact-privacy-note">Please don't include passwords or other sensitive information.</p>
+    </form>
+  </div>
 </section>
-```
-
-</main>
-
-<footer class="site-footer">
-
-```
-<div class="footer-content">
-    <div class="footer-brand">
-        <h3>Felix KE Ideas</h3>
-        <p>Mathematics, technology, ideas, and continuous growth.</p>
-    </div>
-
-    <div class="footer-links">
-        <a href="{{ url_for('index') }}">Home</a>
-        <a href="{{ url_for('about') }}">About</a>
-        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
-    </div>
 </div>
-
-<p class="footer-bottom">
-    &copy; 2026 Felix KE Ideas. All rights reserved.
-</p>
-```
-
-</footer>
-
-</body>
-</html>
+{% endblock %}

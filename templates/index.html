@@ -1,402 +1,66 @@
-<!DOCTYPE html>
-
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Felix KE Ideas — web development, programming, data analysis, and digital solutions by Felix Atandi.">
-    <title>Felix KE Ideas | Digital Solutions & Portfolio</title>
-
-
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-
-</head>
-
-<body>
-
-
-<!-- Navigation -->
-<header class="site-header">
-    <nav class="navbar">
-        <a href="/" class="brand">Felix <span>KE Ideas.</span></a>
-
-        <div class="nav-links">
-            <a href="/" class="active">Home</a>
-            <a href="/about">About</a>
-            <a href="#portfolio">Portfolio</a>
-            <a href="#products">Services</a>
-            <a href="#contact" class="nav-contact">Contact Me</a>
-        </div>
-    </nav>
-</header>
-
-<main>
-
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-
-            <p class="hero-tagline">
-                WELCOME TO FELIX KE IDEAS
-            </p>
-
-            <h1>
-                Turning Ideas Into
-                <span>Digital Solutions.</span>
-            </h1>
-
-            <p class="hero-description">
-                I'm Felix Atandi, a Mathematical Science with IT student
-                at Maseno University. I'm developing practical digital
-                solutions through web development, programming, and
-                data analysis.
-            </p>
-
-            <div class="hero-buttons">
-                <a href="#portfolio" class="button">
-                    Explore My Work
-                </a>
-
-                <a href="#contact" class="button button-outline">
-                    Let's Connect
-                </a>
-            </div>
-
-            <div class="hero-highlights">
-                <div>
-                    <strong>01</strong>
-                    <span>Web Development</span>
-                </div>
-
-                <div>
-                    <strong>02</strong>
-                    <span>Programming</span>
-                </div>
-
-                <div>
-                    <strong>03</strong>
-                    <span>Data Analysis</span>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- Portfolio Section -->
-    <section class="portfolio-section section-container" id="portfolio">
-
-        <div class="portfolio-heading section-heading">
-            <p class="section-label">GET TO KNOW ME</p>
-            <h2>My Portfolio</h2>
-            <p>
-                My background, technical skills, projects, and
-                professional goals.
-            </p>
-        </div>
-
-        <div class="portfolio-grid">
-
-
-<!-- ABOUT ME -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">👨‍💻</div>
-    <h3>About Me</h3>
-    <p>
-        I am a third-year Mathematical Science with IT student
-        at Maseno University with an interest in mathematics,
-        computing, and solving practical problems using technology.
-        I am continuously developing my knowledge through academic
-        study, personal projects, and practical experimentation.
-    </p>
-    <a href="{{ url_for('about') }}" class="project-link">
-        Learn More →
-    </a>
-</article>
-
-<!-- EDUCATION -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">🎓</div>
-    <h3>Education</h3>
-    <p>
-        I am pursuing a degree in Mathematical Science with IT
-        at Maseno University. My academic interests include
-        mathematical reasoning, statistics, probability,
-        computational mathematics, and the relationship between
-        mathematics and information technology.
-    </p>
-    <a href="{{ url_for('about') }}" class="project-link">
-        My Background →
-    </a>
-</article>
-
-<!-- TECHNICAL SKILLS -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">💻</div>
-    <h3>Technical Skills</h3>
-    <p>
-        I am building practical skills in Python programming,
-        HTML, CSS, Flask, PostgreSQL, Microsoft Excel, R,
-        statistics, and data analysis. My goal is to turn
-        theoretical knowledge into useful digital solutions.
-    </p>
-    <a href="#products" class="project-link">
-        Explore Services →
-    </a>
-</article>
-
-<!-- CURRENT PROJECT -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">🚀</div>
-    <h3>Felix KE Ideas</h3>
-    <p>
-        This is my first deployed website, developed using
-        Python, Flask, HTML, CSS, and PostgreSQL. It includes
-        multiple pages, a contact form, database-backed messages,
-        and an administrator dashboard. I am continuing to improve
-        its design, functionality, and security.
-    </p>
-    <a href="https://felix-ke-ideas.onrender.com/"
-       class="project-link"
-       target="_blank"
-       rel="noopener noreferrer">
-        Visit Live Website →
-    </a>
-</article>
-
-<!-- DATA ANALYSIS -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">📊</div>
-    <h3>Statistics & Data Analysis</h3>
-    <p>
-        I am developing my ability to work with data, perform
-        statistical calculations, interpret results, and
-        communicate findings clearly. I intend to build projects
-        using Excel, Python, R, and statistical methods as my
-        experience grows.
-    </p>
-    <a href="#contact" class="project-link">
-        Discuss a Project →
-    </a>
-</article>
-
-<!-- MATHEMATICS -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">📐</div>
-    <h3>Applied Mathematics</h3>
-    <p>
-        I am interested in exploring how mathematical concepts,
-        modelling, probability, and analytical reasoning can
-        help explain real-world situations. I aim to connect
-        my university studies with practical computational
-        applications.
-    </p>
-    <a href="#contact" class="project-link">
-        Get in Touch →
-    </a>
-</article>
-
-<!-- PERSONAL DEVELOPMENT -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">📚</div>
-    <h3>Continuous Learning</h3>
-    <p>
-        I believe that developing technical ability requires
-        consistent practice and a willingness to learn from
-        mistakes. I am strengthening my programming skills,
-        exploring new tools, and building projects step by step
-        to gain practical experience.
-    </p>
-    <a href="#contact" class="project-link">
-        Connect With Me →
-    </a>
-</article>
-
-<!-- CAREER GOALS -->
-<article class="portfolio-card">
-    <div class="portfolio-icon">🎯</div>
-    <h3>Career Goals</h3>
-    <p>
-        My goal is to combine mathematical knowledge and
-        information technology to solve practical problems.
-        I want to build a strong portfolio, gain experience
-        through university attachment, and prepare for
-        opportunities in programming, statistics, data analysis,
-        and other technology-related fields.
-    </p>
-    <a href="#contact" class="project-link">
-        Contact Me →
-    </a>
-</article>
-
-</div>
-
-    </section>
-
-    <!-- Products and Services -->
-    <section class="products-section section-container" id="products">
-
-        <div class="products-heading section-heading">
-            <p class="section-label">WHAT I'M BUILDING</p>
-            <h2>Products &amp; Services</h2>
-            <p>
-                Explore my areas of interest and the digital solutions
-                I'm learning to create.
-            </p>
-        </div>
-
-        <div class="products-grid">
-
-            <article class="product-card">
-                <div class="service-icon">🌐</div>
-                <h3>Website Development</h3>
-                <p>
-                    Responsive websites built with HTML, CSS, Python,
-                    and Flask, focusing on usability and clean design.
-                </p>
-
-                <ul>
-                    <li>Website structure and layout</li>
-                    <li>Responsive design</li>
-                    <li>Contact forms</li>
-                </ul>
-
-                <a href="#contact" class="button">
-                    Make an Enquiry
-                </a>
-            </article>
-
-            <article class="product-card">
-                <div class="service-icon">📊</div>
-                <h3>Data Analysis</h3>
-                <p>
-                    Developing practical data analysis skills using
-                    statistics and tools such as Python, Excel, and R.
-                </p>
-
-                <ul>
-                    <li>Data organisation</li>
-                    <li>Statistical analysis</li>
-                    <li>Charts and visualisation</li>
-                </ul>
-
-                <a href="#contact" class="button">
-                    Make an Enquiry
-                </a>
-            </article>
-
-            <article class="product-card">
-                <div class="service-icon">💡</div>
-                <h3>Digital Projects</h3>
-                <p>
-                    Exploring technology ideas and building projects
-                    that combine mathematics, programming, and
-                    problem-solving.
-                </p>
-
-                <ul>
-                    <li>Project prototypes</li>
-                    <li>Programming projects</li>
-                    <li>Technical problem-solving</li>
-                </ul>
-
-                <a href="#contact" class="button">
-                    Discuss a Project
-                </a>
-            </article>
-
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="contact-section section-container" id="contact">
-
-        <div class="section-heading">
-            <p class="section-label">LET'S CONNECT</p>
-            <h2>Have an Idea?</h2>
-            <p>
-                Have a question, project idea, or business enquiry?
-                Send me a message.
-            </p>
-        </div>
-
-        <div class="contact-card">
-
-            <form action="{{ url_for('contact') }}" method="POST">
-
-                <input
-                    type="hidden"
-                    name="csrf_token"
-                    value="{{ csrf_token() }}"
-                >
-
-                <label for="name">Your Name</label>
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter your name"
-                    maxlength="100"
-                    autocomplete="name"
-                    required
-                >
-
-                <label for="email">Your Email</label>
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    maxlength="254"
-                    autocomplete="email"
-                    required
-                >
-
-                <label for="message">Your Message</label>
-                <textarea
-                    id="message"
-                    name="message"
-                    rows="5"
-                    placeholder="Tell me about your idea..."
-                    maxlength="5000"
-                    required
-                ></textarea>
-
-                <button type="submit" class="button">
-                    Send Message →
-                </button>
-
-            </form>
-        </div>
-    </section>
-
-</main>
-
-<!-- Footer -->
-<footer class="site-footer">
-    <a href="/" class="footer-brand">Felix KE Ideas.</a>
-
-    <p>
-        Turning ideas into digital solutions.
-    </p>
-
-    <div class="footer-links">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="#portfolio">Portfolio</a>
-        <a href="#products">Services</a>
-        <a href="#contact">Contact</a>
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="hero-content">
+    <p class="hero-tagline">Felix Atandi, Maseno University</p>
+    <h1>Turning ideas into <span>digital solutions.</span></h1>
+    <p class="hero-description">I'm a third-year Mathematical Science with IT student. I build websites in Python and Flask and learn to turn data into clear answers with statistics.</p>
+    <div class="hero-buttons">
+      <a href="#projects" class="button">See my work</a>
+      <a href="{{ url_for('static', filename='felix-atandi-cv.pdf') }}" class="button button-outline" download>Download CV</a>
     </div>
+  </div>
+</section>
 
-    <p class="copyright">
-        &copy; 2026 Felix KE Ideas. All rights reserved.
-    </p>
+<section class="portfolio-section" id="portfolio">
+  <div class="portfolio-heading section-heading">
+    <h2>What I do</h2>
+    <p>Three areas I work in. The full story is on the <a href="{{ url_for('about') }}">About page</a>.</p>
+  </div>
+  <div class="portfolio-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    <article class="portfolio-card"><div class="portfolio-icon" aria-hidden="true">🌐</div><h3>Web development</h3><p>Responsive sites and database-backed apps with Python, Flask, HTML, CSS and PostgreSQL.</p></article>
+    <article class="portfolio-card"><div class="portfolio-icon" aria-hidden="true">📊</div><h3>Data analysis</h3><p>Organising data, running statistical analysis and presenting results with Excel, R and Python.</p></article>
+    <article class="portfolio-card"><div class="portfolio-icon" aria-hidden="true">📐</div><h3>Applied mathematics</h3><p>Using probability and modelling to explain real-world problems.</p></article>
+  </div>
+</section>
 
-    <p class="footer-tech">
-        Built with Python, Flask, HTML, CSS, and PostgreSQL.
-    </p>
-</footer>
+<section class="products-section" id="projects">
+  <div class="products-heading section-heading">
+    <h2>Projects</h2>
+    <p>Work I have built and deployed.</p>
+  </div>
+  <div class="products-grid" style="grid-template-columns:minmax(0,720px);justify-content:center">
+    <article class="product-card">
+      <h3>Felix KE Ideas (this website)</h3>
+      <p>A full web application I designed, coded and deployed on Render.</p>
+      <ul>
+        <li>Contact form that saves messages to PostgreSQL</li>
+        <li>Password-protected admin dashboard with search, delete and CSV export</li>
+        <li>CSRF protection, hashed passwords and rate limiting</li>
+      </ul>
+      <p class="tags"><span>Python</span><span>Flask</span><span>PostgreSQL</span><span>HTML/CSS</span></p>
+    </article>
+  </div>
+</section>
 
+<section class="products-section" id="products" style="background:transparent">
+  <div class="products-heading section-heading">
+    <h2>Services</h2>
+    <p>Where I can help today.</p>
+  </div>
+  <div class="products-grid">
+    <article class="product-card"><h3>Website development</h3><p>Clean, responsive websites with working contact forms.</p><ul><li>Layout and structure</li><li>Mobile-friendly design</li><li>Contact forms</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
+    <article class="product-card"><h3>Data analysis</h3><p>Turn raw figures into tables, charts and clear findings.</p><ul><li>Data organisation</li><li>Statistical analysis</li><li>Charts</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
+    <article class="product-card"><h3>Digital projects</h3><p>Prototypes that combine programming and problem-solving.</p><ul><li>Project prototypes</li><li>Programming projects</li><li>Technical problem-solving</li></ul><a href="{{ url_for('contact') }}" class="button">Discuss a project</a></article>
+  </div>
+</section>
 
-</body>
-</html>
+<section class="contact-section" id="contact">
+  <div class="section-heading"><h2>Have an idea?</h2><p>Message me directly or use the contact form.</p></div>
+  <div class="contact-card cta-links">
+    {% if contact_email %}<a class="button" href="mailto:{{ contact_email }}">Email me</a>{% endif %}
+    {% if whatsapp_number %}<a class="button" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
+    <a class="button button-outline" href="{{ url_for('contact') }}">Use the contact form</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,120 +1,18 @@
-<!DOCTYPE html>
-
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login | Felix KE Ideas</title>
-	
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-<style>
-    .login-container {
-        max-width: 420px;
-        margin: 60px auto;
-        padding: 30px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .login-container h1 {
-        font-size: 30px;
-        text-align: center;
-    }
-
-    .login-container label {
-        display: block;
-        margin-top: 15px;
-        font-weight: bold;
-    }
-
-    .login-container input {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 12px;
-        margin-top: 6px;
-        border: 1px solid #cccccc;
-        border-radius: 5px;
-    }
-
-    .login-container button {
-        width: 100%;
-        margin-top: 22px;
-        padding: 12px;
-        background: #123456;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    .login-container button:hover {
-        background: #245580;
-    }
-
-    .login-error {
-        color: #cc0000;
-        text-align: center;
-    }
-
-    @media (max-width: 500px) {
-        .login-container {
-            margin: 30px 15px;
-            padding: 20px;
-        }
-    }
-</style>
-
-</head>
-
-<body>
-
-<nav>
-    <h2>Felix KE Ideas</h2>
-    <a href="/">Home</a>
-    <a href="/about">About</a>
-    <a href="/contact">Contact</a>
-</nav>
-
-<main class="login-container">
-
-    <h1>Admin Login</h1>
-
-    <p>Log in to access your website's admin dashboard.</p>
-
-    {% if error %}
-        <p class="login-error">{{ error }}</p>
-    {% endif %}
-
+{% extends "base.html" %}
+{% block title %}Admin login | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<section class="auth-card">
+    <h1>Admin login</h1>
+    <p>Sign in to manage messages sent through your website.</p>
     <form action="{{ url_for('login') }}" method="POST">
-	    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="username">Username</label>
-        <input
-            type="text"
-            id="username"
-            name="username"
-            required
-        >
-
+        <input type="text" id="username" name="username" autocomplete="username" autofocus required>
         <label for="password">Password</label>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            required
-        >
-
-        <button type="submit">Log In</button>
-
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <button type="submit" class="button">Log in</button>
     </form>
-
-</main>
-
-<footer class="site-footer">
-    <p>&copy; 2026 Felix KE Ideas. All rights reserved.</p>
-</footer>
-
-</body>
-</html>
+    <a class="auth-back" href="{{ url_for('index') }}">Back to website</a>
+</section>
+{% endblock %}
