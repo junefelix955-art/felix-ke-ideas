@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% set reg = mode == 'register' %}
+{% block title %}{{ 'Join' if reg else 'Sign in' }} | Felix KE Ideas{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <h1>{{ 'Create your account' if reg else 'Welcome back' }}</h1>
+  <p>{{ 'Free, and no email needed. Share what you learn and read what others post.' if reg else 'Sign in to post in the community.' }}</p>
+  <form method="POST" action="{{ url_for('register' if reg else 'signin') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" value="{{ username }}" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" autocomplete="username" autofocus required>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" minlength="{{ 8 if reg else 1 }}" maxlength="128" autocomplete="{{ 'new-password' if reg else 'current-password' }}" required>
+    {% if reg %}<p class="contact-privacy-note">Use at least 8 characters. There is no password reset, so keep it somewhere safe.</p>{% endif %}
+    <button type="submit" class="button">{{ 'Join free' if reg else 'Sign in' }}</button>
+  </form>
+  <a class="auth-back" href="{{ url_for('signin' if reg else 'register') }}">{{ 'Already a member? Sign in' if reg else 'New here? Create an account' }}</a>
+</section>
+{% endblock %}

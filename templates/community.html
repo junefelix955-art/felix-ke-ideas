@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Community | Felix KE Ideas{% endblock %}
+{% block description %}Share what you know and learn from other members in the Felix KE Ideas community.{% endblock %}
+{% block content %}
+<div class="community">
+  <div class="section-heading"><h1>Community</h1><p>Share a tip, a solved problem or a lesson. Read, learn, repeat.</p></div>
+
+  {% if current_user %}
+  <form class="post-form" method="POST" action="{{ url_for('new_post') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" maxlength="120" placeholder="e.g. How I solved quadratic equations faster" required>
+    <label for="body">What do you want to share?</label>
+    <textarea id="body" name="body" rows="5" maxlength="3000" required></textarea>
+    <button type="submit" class="button">Post to community</button>
+  </form>
+  {% else %}
+  <div class="post-cta"><p>Join to share your own posts.</p><a href="{{ url_for('register') }}" class="button">Join free</a> <a href="{{ url_for('signin') }}" class="button button-outline">Sign in</a></div>
+  {% endif %}
+
+  {% for p in posts %}
+  <article class="post" id="post-{{ p[0] }}">
+    <h2>{{ p[1] }}</h2>
+    <p class="post-meta">by <strong>{{ p[3] }}</strong> &middot; {{ p[4].strftime('%d %b %Y') }}</p>
+    <div class="post-body">{{ p[2] }}</div>
+    {% if is_admin or (user_id and user_id == p[5]) %}
+    <form method="POST" action="{{ url_for('delete_post', post_id=p[0]) }}" onsubmit="return confirm('Delete this post?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="admin-delete-button">Delete</button>
+    </form>
+    {% endif %}
+  </article>
+  {% else %}
+  <p class="admin-empty">No posts yet. Be the first to share something.</p>
+  {% endfor %}
+</div>
+{% endblock %}

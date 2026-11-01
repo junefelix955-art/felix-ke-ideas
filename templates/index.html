@@ -2,65 +2,81 @@
 {% block content %}
 <section class="hero">
   <div class="hero-content">
-    <p class="hero-tagline">Felix Atandi, Maseno University</p>
-    <h1>Turning ideas into <span>digital solutions.</span></h1>
-    <p class="hero-description">I'm a third-year Mathematical Science with IT student. I build websites in Python and Flask and learn to turn data into clear answers with statistics.</p>
+    <p class="live-pill"><span class="dot"></span> Live community</p>
+    <h1>Learn it. Build it. <span>Share it.</span></h1>
+    <p class="hero-description">A place to learn maths, programming and data analysis together. Read what others discover, share what you know, and sharpen your mind with a quick game.</p>
     <div class="hero-buttons">
-      <a href="#projects" class="button">See my work</a>
-      <a href="{{ url_for('static', filename='felix-atandi-cv.pdf') }}" class="button button-outline" download>Download CV</a>
+      <a href="{{ url_for('register') }}" class="button">Join free</a>
+      <a href="{{ url_for('community') }}" class="button button-outline">Browse posts</a>
+    </div>
+    <div class="stats-strip" aria-live="polite">
+      <div><strong id="stat-members">{{ stats.members }}</strong><span>Members</span></div>
+      <div><strong id="stat-posts">{{ stats.posts }}</strong><span>Posts shared</span></div>
+      <div><strong>30s</strong><span>Maths Sprint game</span></div>
     </div>
   </div>
 </section>
 
-<section class="portfolio-section" id="portfolio">
-  <div class="portfolio-heading section-heading">
-    <h2>What I do</h2>
-    <p>Three areas I work in. The full story is on the <a href="{{ url_for('about') }}">About page</a>.</p>
-  </div>
-  <div class="portfolio-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-    <article class="portfolio-card"><div class="portfolio-icon" aria-hidden="true">🌐</div><h3>Web development</h3><p>Responsive sites and database-backed apps with Python, Flask, HTML, CSS and PostgreSQL.</p></article>
-    <article class="portfolio-card"><div class="portfolio-icon" aria-hidden="true">📊</div><h3>Data analysis</h3><p>Organising data, running statistical analysis and presenting results with Excel, R and Python.</p></article>
-    <article class="portfolio-card"><div class="portfolio-icon" aria-hidden="true">📐</div><h3>Applied mathematics</h3><p>Using probability and modelling to explain real-world problems.</p></article>
+<section class="section-pad">
+  <div class="section-heading"><h2>Fresh from the community</h2><p>Updates automatically while you watch.</p></div>
+  <ul class="live-feed" id="live-feed">
+    {% for p in stats.latest %}<li><a href="{{ url_for('community') }}#post-{{ p.id }}">{{ p.title }}</a><span>by {{ p.author }}</span></li>
+    {% else %}<li class="feed-empty">No posts yet. <a href="{{ url_for('register') }}">Be the first to share something.</a></li>{% endfor %}
+  </ul>
+</section>
+
+<section class="section-pad alt">
+  <div class="how-grid">
+    <article class="how-card"><span class="num">1</span><h3>Create a free account</h3><p>Pick a username and password. No email needed.</p></article>
+    <article class="how-card"><span class="num">2</span><h3>Share what you know</h3><p>Post a tip, a solved problem, a code snippet or a lesson.</p></article>
+    <article class="how-card"><span class="num">3</span><h3>Learn from others</h3><p>Read the feed, pick up new ideas and come back daily.</p></article>
   </div>
 </section>
 
-<section class="products-section" id="projects">
-  <div class="products-heading section-heading">
-    <h2>Projects</h2>
-    <p>Work I have built and deployed.</p>
-  </div>
-  <div class="products-grid" style="grid-template-columns:minmax(0,720px);justify-content:center">
-    <article class="product-card">
-      <h3>Felix KE Ideas (this website)</h3>
-      <p>A full web application I designed, coded and deployed on Render.</p>
-      <ul>
-        <li>Contact form that saves messages to PostgreSQL</li>
-        <li>Password-protected admin dashboard with search, delete and CSV export</li>
-        <li>CSRF protection, hashed passwords and rate limiting</li>
-      </ul>
-      <p class="tags"><span>Python</span><span>Flask</span><span>PostgreSQL</span><span>HTML/CSS</span></p>
-    </article>
+<section class="section-pad">
+  <div class="play-teaser">
+    <div><h2>Think you're quick?</h2><p>Maths Sprint gives you 30 seconds to answer as many sums as you can. Beat your best score.</p></div>
+    <a href="{{ url_for('play') }}" class="button">Play now</a>
   </div>
 </section>
 
-<section class="products-section" id="products" style="background:transparent">
-  <div class="products-heading section-heading">
-    <h2>Services</h2>
-    <p>Where I can help today.</p>
-  </div>
+<section class="products-section" id="products">
+  <div class="products-heading section-heading"><h2>Services</h2><p>Need something built or analysed? Get in touch.</p></div>
   <div class="products-grid">
-    <article class="product-card"><h3>Website development</h3><p>Clean, responsive websites with working contact forms.</p><ul><li>Layout and structure</li><li>Mobile-friendly design</li><li>Contact forms</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
+    <article class="product-card"><h3>Website development</h3><p>Clean, responsive websites with working forms and databases.</p><ul><li>Layout and structure</li><li>Mobile-friendly design</li><li>Contact forms</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
     <article class="product-card"><h3>Data analysis</h3><p>Turn raw figures into tables, charts and clear findings.</p><ul><li>Data organisation</li><li>Statistical analysis</li><li>Charts</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
-    <article class="product-card"><h3>Digital projects</h3><p>Prototypes that combine programming and problem-solving.</p><ul><li>Project prototypes</li><li>Programming projects</li><li>Technical problem-solving</li></ul><a href="{{ url_for('contact') }}" class="button">Discuss a project</a></article>
+    <article class="product-card"><h3>Digital projects</h3><p>Prototypes that combine programming and problem-solving.</p><ul><li>Prototypes</li><li>Programming projects</li><li>Problem-solving</li></ul><a href="{{ url_for('contact') }}" class="button">Discuss a project</a></article>
   </div>
 </section>
 
-<section class="contact-section" id="contact">
-  <div class="section-heading"><h2>Have an idea?</h2><p>Message me directly or use the contact form.</p></div>
+<section class="contact-section">
+  <div class="section-heading"><h2>Let's talk</h2><p>Message directly or use the contact form.</p></div>
   <div class="contact-card cta-links">
-    {% if contact_email %}<a class="button" href="mailto:{{ contact_email }}">Email me</a>{% endif %}
+    {% if contact_email %}<a class="button" href="mailto:{{ contact_email }}">Email</a>{% endif %}
     {% if whatsapp_number %}<a class="button" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
-    <a class="button button-outline" href="{{ url_for('contact') }}">Use the contact form</a>
+    <a class="button button-outline" href="{{ url_for('contact') }}">Contact form</a>
   </div>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var base="{{ url_for('community') }}";
+  function refresh(){
+    fetch("{{ url_for('api_stats') }}",{headers:{Accept:"application/json"}}).then(function(r){return r.json();}).then(function(d){
+      document.getElementById("stat-members").textContent=d.members;
+      document.getElementById("stat-posts").textContent=d.posts;
+      var ul=document.getElementById("live-feed");
+      if(!d.latest.length) return;
+      ul.textContent="";
+      d.latest.forEach(function(p){
+        var li=document.createElement("li"),a=document.createElement("a"),s=document.createElement("span");
+        a.href=base+"#post-"+p.id; a.textContent=p.title; s.textContent="by "+p.author;
+        li.appendChild(a); li.appendChild(s); ul.appendChild(li);
+      });
+    }).catch(function(){});
+  }
+  setInterval(function(){ if(!document.hidden) refresh(); },20000);
+})();
+</script>
 {% endblock %}

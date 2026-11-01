@@ -94,3 +94,46 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
 .admin-delete-button:hover{background:#c62828;color:#fff;transform:none}
 .admin-empty{text-align:center;padding:30px 10px;margin:0}
 @media(max-width:700px){.admin-stats{grid-template-columns:1fr}}
+
+/* ===== Community, home v2, game ===== */
+.nav-form{display:inline;margin:0}
+.section-pad{padding:70px 7%}
+.section-pad.alt{background:#edf3fa}
+[data-theme="dark"] .section-pad.alt{background:#0e1c30}
+.hero{min-height:620px}
+.live-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:rgba(22,160,133,.12);color:var(--accent);font-weight:700;font-size:.95rem}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,160,133,.6)}70%{box-shadow:0 0 0 10px rgba(22,160,133,0)}100%{box-shadow:0 0 0 0 rgba(22,160,133,0)}}
+.hero-content>*{animation:rise .7s ease both}
+.hero-content>*:nth-child(2){animation-delay:.08s}.hero-content>*:nth-child(3){animation-delay:.16s}.hero-content>*:nth-child(4){animation-delay:.24s}.hero-content>*:nth-child(5){animation-delay:.32s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.stats-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-top:48px}
+.stats-strip div{min-width:150px;padding:16px 22px;border-radius:14px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stats-strip strong{font:800 2rem var(--font-head);color:var(--accent)}
+.stats-strip span{color:var(--muted);font-size:.9rem;font-weight:600}
+.live-feed{list-style:none;max-width:760px;margin:0 auto;padding:0;display:grid;gap:10px}
+.live-feed li{display:flex;justify-content:space-between;gap:12px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.live-feed a{font-weight:700}.live-feed span{color:var(--muted);white-space:nowrap}
+.feed-empty{justify-content:center!important}
+.how-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;max-width:1100px;margin:0 auto}
+.how-card{padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.how-card h3{margin:12px 0 8px}.how-card p{margin:0}
+.num{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:50%;background:var(--accent);color:#fff;font:800 1.1rem var(--font-head)}
+.play-teaser{max-width:900px;margin:0 auto;padding:36px;border-radius:20px;display:flex;gap:24px;justify-content:space-between;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#0a2742,#123b63);color:#fff}
+.play-teaser h2{color:#fff;margin:0 0 6px}.play-teaser p{color:#dbe6f2;margin:0}
+.community{width:min(820px,92%);margin:50px auto 70px}
+.post-form,.post,.post-cta{padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);margin-bottom:20px}
+.post-form button{margin-top:16px}
+.post-cta{text-align:center}.post-cta p{margin-top:0}
+.post h2{margin:0 0 6px;font-size:1.35rem}
+.post-meta{margin:0 0 12px;font-size:.92rem}
+.post-body{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);margin-bottom:12px}
+.game{max-width:520px;margin:50px auto 70px;padding:32px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);width:92%}
+.game h1{margin-top:0}
+.game-hud{display:flex;justify-content:space-around;margin:18px 0;color:var(--muted);font-weight:600}
+.game-hud b{display:block;font:800 1.8rem var(--font-head);color:var(--primary-dark)}
+.game-q{font:800 clamp(2.4rem,9vw,3.6rem) var(--font-head);margin:14px 0;color:var(--accent)}
+.game form{display:flex;gap:10px}.game input{font-size:1.4rem;text-align:center}
+.game-msg{min-height:1.6em;margin:14px 0 0;font-weight:600}
+@media(max-width:850px){.how-grid{grid-template-columns:1fr}.section-pad{padding:50px 5%}.live-feed li{flex-direction:column;gap:2px}}
+@media(prefers-reduced-motion:reduce){.hero-content>*,.dot{animation:none}}

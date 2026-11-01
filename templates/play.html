@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Maths Sprint | Felix KE Ideas{% endblock %}
+{% block description %}Play Maths Sprint: answer as many sums as you can in 30 seconds.{% endblock %}
+{% block content %}
+<section class="game">
+  <h1>Maths Sprint</h1>
+  <p>Answer as many sums as you can in 30 seconds. Questions get harder as you score.</p>
+  <div class="game-hud"><span>Time <b id="g-time">30</b></span><span>Score <b id="g-score">0</b></span><span>Best <b id="g-best">0</b></span></div>
+  <div class="game-q" id="g-q" aria-live="polite">Ready?</div>
+  <form id="g-form" autocomplete="off"><input type="number" id="g-ans" inputmode="numeric" aria-label="Your answer" disabled><button type="submit" class="button" id="g-go">Start</button></form>
+  <p class="game-msg" id="g-msg"></p>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i);}, score=0, time=30, ans=0, timer=null, best=0;
+  try{best=parseInt(localStorage.getItem("sprintBest"),10)||0;}catch(e){}
+  $("g-best").textContent=best;
+  function rnd(n){return Math.floor(Math.random()*n);}
+  function next(){
+    var lv=Math.min(1+Math.floor(score/5),5), a=rnd(10*lv)+2, b=rnd(10*lv)+2, op=rnd(lv>2?3:2);
+    if(op===0){ans=a+b;$("g-q").textContent=a+" + "+b;}
+    else if(op===1){if(b>a){var t=a;a=b;b=t;}ans=a-b;$("g-q").textContent=a+" \u2212 "+b;}
+    else{a=rnd(11)+2;b=rnd(10)+2;ans=a*b;$("g-q").textContent=a+" \u00d7 "+b;}
+    $("g-ans").value="";$("g-ans").focus();
+  }
+  function end(){
+    clearInterval(timer);$("g-ans").disabled=true;$("g-go").disabled=false;$("g-go").textContent="Play again";
+    $("g-q").textContent="Time's up!";
+    var msg="You scored "+score+".";
+    if(score>best){best=score;$("g-best").textContent=best;msg+=" New best!";try{localStorage.setItem("sprintBest",best);}catch(e){}}
+    $("g-msg").textContent=msg;
+  }
+  function start(){
+    score=0;time=30;$("g-score").textContent=0;$("g-time").textContent=30;$("g-msg").textContent="";
+    $("g-ans").disabled=false;$("g-go").disabled=true;next();
+    timer=setInterval(function(){time--;$("g-time").textContent=time;if(time<=0)end();},1000);
+  }
+  $("g-form").addEventListener("submit",function(e){
+    e.preventDefault();
+    if($("g-ans").disabled){start();return;}
+    if(parseInt($("g-ans").value,10)===ans){score++;$("g-score").textContent=score;$("g-msg").textContent="";}
+    else{$("g-msg").textContent="Not quite. Keep going!";}
+    next();
+  });
+})();
+</script>
+{% endblock %}

@@ -24,11 +24,16 @@
         <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
         <div id="nav-links" class="nav-links">
             <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Home</a>
+            <a href="{{ url_for('community') }}" {% if request.endpoint == 'community' %}aria-current="page"{% endif %}>Community</a>
+            <a href="{{ url_for('play') }}" {% if request.endpoint == 'play' %}aria-current="page"{% endif %}>Play</a>
             <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}aria-current="page"{% endif %}>About</a>
-            <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
-            <a href="{{ url_for('index') }}#products">Services</a>
             <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch light or dark theme">Theme</button>
-            <a href="{{ url_for('contact') }}" class="nav-contact">Contact me</a>
+            {% if current_user %}
+            <form action="{{ url_for('signout') }}" method="POST" class="nav-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="theme-toggle">Sign out ({{ current_user }})</button></form>
+            {% else %}
+            <a href="{{ url_for('signin') }}">Sign in</a>
+            <a href="{{ url_for('register') }}" class="nav-contact">Join free</a>
+            {% endif %}
         </div>
     </nav>
 </header>
@@ -52,14 +57,15 @@
     <p>Turning ideas into digital solutions.</p>
     <div class="footer-links">
         <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('community') }}">Community</a>
+        <a href="{{ url_for('play') }}">Play</a>
         <a href="{{ url_for('about') }}">About</a>
-        <a href="{{ url_for('index') }}#portfolio">Portfolio</a>
-        <a href="{{ url_for('index') }}#products">Services</a>
         <a href="{{ url_for('contact') }}">Contact</a>
     </div>
     <p class="copyright">&copy; 2026 Felix KE Ideas. All rights reserved.</p>
     <p class="footer-tech">Built with Python, Flask, HTML, CSS and PostgreSQL.</p>
 </footer>
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

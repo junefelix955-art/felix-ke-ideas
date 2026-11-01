@@ -10,12 +10,13 @@ from functools import wraps
 import psycopg
 from dotenv import load_dotenv
 from flask import (
-    Flask, render_template, request, redirect, url_for, session, flash, abort, Response,
+    jsonify, Flask, render_template, request, redirect, url_for, session, flash, abort, Response,
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+import psycopg.errors
 
 load_dotenv()
 
@@ -76,6 +77,13 @@ def initialize_database():
             "ALTER TABLE messages "
             "ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"
         )
+        connection.execute("""CREATE TABLE IF NOT EXISTS users (
+            id BIGSERIAL PRIMARY KEY, username VARCHAR(30) UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        connection.execute("""CREATE TABLE IF NOT EXISTS posts (
+            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title VARCHAR(120) NOT NULL, body VARCHAR(3000) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
         connection.commit()
     finally:
         connection.close()
@@ -117,7 +125,7 @@ def add_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv"):
+    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register"):
         response.headers["Cache-Control"] = "no-store"  # back button can't reopen the dashboard
     return response
 
@@ -149,7 +157,7 @@ def server_error(e):
 # ---------- Public pages ----------
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", stats=get_stats())
 
 
 @app.route("/about")
@@ -304,6 +312,167 @@ def logout():
     validate_csrf()
     session.clear()
     return redirect(url_for("login"))
+
+
+
+# ---------- Community, accounts, live stats ----------
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
+
+
+@app.context_processor
+def who():
+    return {"current_user": session.get("username"), "is_admin": bool(session.get("admin_logged_in"))}
+
+
+def user_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Please sign in to do that.", "error")
+            return redirect(url_for("signin"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def get_stats():
+    try:
+        c = get_db_connection()
+        try:
+            members = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            posts = c.execute("SELECT COUNT(*) FROM posts").fetchone()[0]
+            rows = c.execute(
+                "SELECT p.id, p.title, u.username FROM posts p JOIN users u ON u.id = p.user_id "
+                "ORDER BY p.id DESC LIMIT 4").fetchall()
+        finally:
+            c.close()
+        return {"members": members, "posts": posts,
+                "latest": [{"id": r[0], "title": r[1], "author": r[2]} for r in rows]}
+    except Exception:
+        return {"members": 0, "posts": 0, "latest": []}
+
+
+@app.route("/api/stats")
+def api_stats():
+    return jsonify(get_stats())
+
+
+def start_session(user_id, username):
+    session.pop("admin_logged_in", None)
+    session["user_id"], session["username"] = user_id, username
+    session["_csrf_token"] = secrets.token_urlsafe(32)
+    session.permanent = True
+
+
+@app.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute;20 per hour", methods=["POST"])
+def register():
+    if request.method == "POST":
+        validate_csrf()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        error = None
+        if not USERNAME_RE.match(username):
+            error = "Username must be 3-30 letters, numbers or underscores."
+        elif len(password) < 8 or len(password) > 128:
+            error = "Password must be 8-128 characters."
+        if not error:
+            c = get_db_connection()
+            try:
+                row = c.execute(
+                    "INSERT INTO users (username, password_hash) VALUES (%s, %s) RETURNING id",
+                    (username, generate_password_hash(password))).fetchone()
+                c.commit()
+                start_session(row[0], username)
+                flash("Welcome to the community, " + username + "!", "success")
+                return redirect(url_for("community"))
+            except psycopg.errors.UniqueViolation:
+                error = "That username is taken. Try another."
+            finally:
+                c.close()
+        flash(error, "error")
+        return render_template("account.html", mode="register", username=username), 400
+    return render_template("account.html", mode="register", username="")
+
+
+@app.route("/signin", methods=["GET", "POST"])
+@limiter.limit("10 per minute", methods=["POST"])
+def signin():
+    if request.method == "POST":
+        validate_csrf()
+        username = request.form.get("username", "").strip()
+        c = get_db_connection()
+        try:
+            row = c.execute("SELECT id, username, password_hash FROM users WHERE lower(username) = lower(%s)",
+                            (username,)).fetchone()
+        finally:
+            c.close()
+        if row and check_password_hash(row[2], request.form.get("password", "")):
+            start_session(row[0], row[1])
+            return redirect(url_for("community"))
+        flash("Wrong username or password.", "error")
+        return render_template("account.html", mode="signin", username=username), 400
+    return render_template("account.html", mode="signin", username="")
+
+
+@app.route("/signout", methods=["POST"])
+def signout():
+    validate_csrf()
+    session.clear()
+    return redirect(url_for("index"))
+
+
+@app.route("/community")
+def community():
+    c = get_db_connection()
+    try:
+        posts = c.execute(
+            "SELECT p.id, p.title, p.body, u.username, p.created_at, p.user_id FROM posts p "
+            "JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 50").fetchall()
+    finally:
+        c.close()
+    return render_template("community.html", posts=posts, user_id=session.get("user_id"), form={})
+
+
+@app.route("/community/new", methods=["POST"])
+@user_required
+@limiter.limit("6 per minute;40 per day")
+def new_post():
+    validate_csrf()
+    title, body = request.form.get("title", "").strip(), request.form.get("body", "").strip()
+    if not title or not body or len(title) > 120 or len(body) > 3000:
+        flash("Add a title (up to 120 characters) and a post (up to 3000).", "error")
+        return redirect(url_for("community"))
+    c = get_db_connection()
+    try:
+        c.execute("INSERT INTO posts (user_id, title, body) VALUES (%s, %s, %s)",
+                  (session["user_id"], title, body))
+        c.commit()
+    finally:
+        c.close()
+    flash("Posted. Thanks for sharing!", "success")
+    return redirect(url_for("community"))
+
+
+@app.route("/community/delete/<int:post_id>", methods=["POST"])
+def delete_post(post_id):
+    validate_csrf()
+    c = get_db_connection()
+    try:
+        row = c.execute("SELECT user_id FROM posts WHERE id = %s", (post_id,)).fetchone()
+        if row and (session.get("admin_logged_in") or row[0] == session.get("user_id")):
+            c.execute("DELETE FROM posts WHERE id = %s", (post_id,))
+            c.commit()
+            flash("Post deleted.", "success")
+        else:
+            flash("You can only delete your own posts.", "error")
+    finally:
+        c.close()
+    return redirect(url_for("community"))
+
+
+@app.route("/play")
+def play():
+    return render_template("play.html")
 
 
 if __name__ == "__main__":
