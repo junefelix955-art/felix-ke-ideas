@@ -3,8 +3,8 @@
 <section class="hero">
   <div class="hero-content">
     <p class="live-pill"><span class="dot"></span> Live community</p>
-    <h1>Learn it. Build it. <span>Share it.</span></h1>
-    <p class="hero-description">A place to learn maths, programming and data analysis together. Read what others discover, share what you know, and sharpen your mind with a quick game.</p>
+    <h1>Turning ideas into <span class="typed"><span id="typed">digital solutions</span><span class="caret" aria-hidden="true"></span></span></h1>
+    <p class="hero-description">A live community for learning maths, programming and data analysis. Read what others discover, share what you know, and sharpen your mind with a quick game.</p>
     <div class="hero-buttons">
       <a href="{{ url_for('register') }}" class="button">Join free</a>
       <a href="{{ url_for('community') }}" class="button button-outline">Browse posts</a>
@@ -61,6 +61,19 @@
 {% block scripts %}
 <script>
 (function(){
+  var el=document.getElementById("typed");
+  if(el&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    var words=["digital solutions","working websites","data insights","shared knowledge"],w=0,c=words[0].length,del=true;
+    (function tick(){
+      var word=words[w];
+      if(del){c--;}else{c++;}
+      el.textContent=word.slice(0,c);
+      var d=del?45:85;
+      if(!del&&c===word.length){del=true;d=1600;}
+      else if(del&&c===0){del=false;w=(w+1)%words.length;d=350;}
+      setTimeout(tick,d);
+    })();
+  }
   var base="{{ url_for('community') }}";
   function refresh(){
     fetch("{{ url_for('api_stats') }}",{headers:{Accept:"application/json"}}).then(function(r){return r.json();}).then(function(d){

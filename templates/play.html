@@ -7,7 +7,7 @@
   <p>Answer as many sums as you can in 30 seconds. Questions get harder as you score.</p>
   <div class="game-hud"><span>Time <b id="g-time">30</b></span><span>Score <b id="g-score">0</b></span><span>Best <b id="g-best">0</b></span></div>
   <div class="game-q" id="g-q" aria-live="polite">Ready?</div>
-  <form id="g-form" autocomplete="off"><input type="number" id="g-ans" inputmode="numeric" aria-label="Your answer" disabled><button type="submit" class="button" id="g-go">Start</button></form>
+  <form id="g-form" autocomplete="off"><input type="text" id="g-ans" inputmode="numeric" pattern="-?[0-9]*" aria-label="Your answer" disabled><button type="submit" class="button" id="g-go">Start</button></form>
   <p class="game-msg" id="g-msg"></p>
 </section>
 {% endblock %}
@@ -26,7 +26,7 @@
     $("g-ans").value="";$("g-ans").focus();
   }
   function end(){
-    clearInterval(timer);$("g-ans").disabled=true;$("g-go").disabled=false;$("g-go").textContent="Play again";
+    clearInterval(timer);$("g-ans").disabled=true;$("g-go").textContent="Play again";
     $("g-q").textContent="Time's up!";
     var msg="You scored "+score+".";
     if(score>best){best=score;$("g-best").textContent=best;msg+=" New best!";try{localStorage.setItem("sprintBest",best);}catch(e){}}
@@ -34,7 +34,7 @@
   }
   function start(){
     score=0;time=30;$("g-score").textContent=0;$("g-time").textContent=30;$("g-msg").textContent="";
-    $("g-ans").disabled=false;$("g-go").disabled=true;next();
+    $("g-ans").disabled=false;$("g-go").textContent="Answer";next();
     timer=setInterval(function(){time--;$("g-time").textContent=time;if(time<=0)end();},1000);
   }
   $("g-form").addEventListener("submit",function(e){
