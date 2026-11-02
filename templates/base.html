@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#070d1a">
     <title>{% block title %}Felix KE Ideas | Digital Solutions & Portfolio{% endblock %}</title>
     <meta name="description" content="{% block description %}Felix KE Ideas: web development, programming, data analysis and digital solutions by Felix Atandi.{% endblock %}">
     <meta property="og:title" content="{{ self.title() }}">
@@ -25,6 +26,7 @@
         <div id="nav-links" class="nav-links">
             <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Home</a>
             <a href="{{ url_for('community') }}" {% if request.endpoint == 'community' %}aria-current="page"{% endif %}>Community</a>
+            <a href="{{ url_for('chat') }}" {% if request.endpoint == 'chat' %}aria-current="page"{% endif %}>Chat</a>
             <a href="{{ url_for('play') }}" {% if request.endpoint == 'play' %}aria-current="page"{% endif %}>Play</a>
             <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}aria-current="page"{% endif %}>About</a>
             <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch light or dark theme">Theme</button>
@@ -58,9 +60,11 @@
     <div class="footer-links">
         <a href="{{ url_for('index') }}">Home</a>
         <a href="{{ url_for('community') }}">Community</a>
+        <a href="{{ url_for('chat') }}">Chat</a>
         <a href="{{ url_for('play') }}">Play</a>
         <a href="{{ url_for('about') }}">About</a>
         <a href="{{ url_for('contact') }}">Contact</a>
+        <a href="{{ url_for('privacy') }}">Privacy &amp; Terms</a>
     </div>
     <p class="copyright">&copy; 2026 Felix KE Ideas. All rights reserved.</p>
     <p class="footer-tech">Built with Python, Flask, HTML, CSS and PostgreSQL.</p>

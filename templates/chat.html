@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Group chat | Felix KE Ideas{% endblock %}
+{% block description %}Chat live with other members of the Felix KE Ideas community.{% endblock %}
+{% block content %}
+<meta name="csrf" content="{{ csrf_token() }}">
+<div class="chat-wrap">
+  <div class="chat-main">
+    <div class="chat-head"><h1>Group chat</h1><span class="live-pill"><span class="dot"></span> <span id="online-count">0</span> online</span></div>
+    <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Chat messages"><p class="chat-empty" id="chat-empty">Loading messages...</p></div>
+    {% if current_user %}
+    <form id="chat-form" class="chat-form" autocomplete="off">
+      <label for="chat-input" class="sr-only">Message</label>
+      <input type="text" id="chat-input" maxlength="500" placeholder="Say something kind and helpful..." required>
+      <button type="submit" class="button">Send</button>
+    </form>
+    <p id="chat-error" class="chat-error" role="alert"></p>
+    {% else %}
+    <div class="post-cta"><p>Sign in to join the conversation.</p><a href="{{ url_for('signin') }}" class="button">Sign in</a> <a href="{{ url_for('register') }}" class="button button-outline">Join free</a></div>
+    {% endif %}
+  </div>
+  <aside class="chat-side"><h2>Online now</h2><ul id="online-list" class="online-list"><li>No one yet</li></ul><p class="post-meta">Be respectful. Admins can remove messages and accounts.</p></aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i);}, log=$("chat-log"), last=0, me=null, first=true, busy=false;
+  var token=document.querySelector('meta[name="csrf"]').content, url="{{ url_for('api_chat') }}";
+  function fmt(iso){try{return new Date(iso).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}catch(e){return "";}}
+  function add(m){
+    var d=document.createElement("div"),h=document.createElement("div"),b=document.createElement("div");
+    d.className="msg"+(m.user===me?" mine":""); h.className="msg-meta"; b.className="msg-body";
+    h.textContent=m.user+" \u00b7 "+fmt(m.time); b.textContent=m.body; d.appendChild(h); d.appendChild(b);
+    if(me&&m.user!==me){var r=document.createElement("button");r.type="button";r.className="link-danger";r.textContent="Report";
+      r.addEventListener("click",function(){var why=prompt("Why are you reporting this message?","Spam");if(!why)return;var f=new FormData();f.append("kind","chat");f.append("target_id",m.id);f.append("reason",why);
+        fetch("{{ url_for('report') }}",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":token},body:f}).then(function(){r.textContent="Reported";r.disabled=true;});});
+      d.appendChild(r);}
+    log.appendChild(d);
+    if(m.id>last) last=m.id;
+  }
+  function render(d){
+    me=d.me; var empty=$("chat-empty"); if(empty&&(d.messages.length||!first)){empty.remove();}
+    var near=log.scrollHeight-log.scrollTop-log.clientHeight<90;
+    d.messages.forEach(add);
+    if(first&&!d.messages.length&&empty) empty.textContent="No messages yet. Say hello!";
+    if(d.messages.length&&(near||first)) log.scrollTop=log.scrollHeight;
+    first=false;
+    $("online-count").textContent=d.online.length;
+    var ul=$("online-list"); ul.textContent="";
+    (d.online.length?d.online:["No one yet"]).forEach(function(n){var li=document.createElement("li");li.textContent=n;ul.appendChild(li);});
+  }
+  function poll(){
+    if(busy) return; busy=true;
+    fetch(url+(last?"?after="+last:""),{credentials:"same-origin"}).then(function(r){return r.json();}).then(render).catch(function(){}).then(function(){busy=false;});
+  }
+  poll(); setInterval(function(){ if(!document.hidden) poll(); },3000);
+  var form=$("chat-form");
+  if(form){
+    form.addEventListener("submit",function(e){
+      e.preventDefault(); var input=$("chat-input"), text=input.value.trim(); if(!text) return;
+      $("chat-error").textContent="";
+      fetch(url+(last?"?after="+last:""),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":token},body:JSON.stringify({body:text})})
+        .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+        .then(function(x){ if(!x.ok){$("chat-error").textContent=x.d.error||"Could not send. Try again.";return;} input.value=""; render(x.d); })
+        .catch(function(){$("chat-error").textContent="Network problem. Try again.";});
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Maths Sprint | Felix KE Ideas{% endblock %}
-{% block description %}Play Maths Sprint: answer as many sums as you can in 30 seconds.{% endblock %}
+{% block description %}Play Maths Sprint: answer as many sums as you can in 30 seconds and climb the leaderboard.{% endblock %}
 {% block content %}
+<meta name="csrf" content="{{ csrf_token() }}">
 <section class="game">
   <h1>Maths Sprint</h1>
   <p>Answer as many sums as you can in 30 seconds. Questions get harder as you score.</p>
@@ -10,13 +11,23 @@
   <form id="g-form" autocomplete="off"><input type="text" id="g-ans" inputmode="numeric" pattern="-?[0-9]*" aria-label="Your answer" disabled><button type="submit" class="button" id="g-go">Start</button></form>
   <p class="game-msg" id="g-msg"></p>
 </section>
+<section class="leaderboard">
+  <h2>Leaderboard</h2>
+  <div class="lb-grid"><div><h3>This week</h3><ol id="lb-week"><li>Loading...</li></ol></div><div><h3>All time</h3><ol id="lb-all"><li>Loading...</li></ol></div></div>
+  <p class="post-meta" id="lb-note">{% if current_user %}Your scores are saved automatically.{% else %}<a href="{{ url_for('signin') }}">Sign in</a> to save your scores to the leaderboard.{% endif %}</p>
+</section>
 {% endblock %}
 {% block scripts %}
 <script>
 (function(){
   var $=function(i){return document.getElementById(i);}, score=0, time=30, ans=0, timer=null, best=0;
+  var token=document.querySelector('meta[name="csrf"]').content, api="{{ url_for('api_scores') }}", signed={{ 'true' if current_user else 'false' }};
   try{best=parseInt(localStorage.getItem("sprintBest"),10)||0;}catch(e){}
   $("g-best").textContent=best;
+  function fill(id,rows){var ol=$(id);ol.textContent="";if(!rows.length){var l=document.createElement("li");l.textContent="No scores yet";ol.appendChild(l);return;}
+    rows.forEach(function(r){var li=document.createElement("li"),n=document.createElement("span"),s=document.createElement("b");n.textContent=r.user;s.textContent=r.score;li.appendChild(n);li.appendChild(s);ol.appendChild(li);});}
+  function board(opts){fetch(api,opts||{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(d){if(d.week){fill("lb-week",d.week);fill("lb-all",d.all);}}).catch(function(){});}
+  board();
   function rnd(n){return Math.floor(Math.random()*n);}
   function next(){
     var lv=Math.min(1+Math.floor(score/5),5), a=rnd(10*lv)+2, b=rnd(10*lv)+2, op=rnd(lv>2?3:2);
@@ -26,10 +37,10 @@
     $("g-ans").value="";$("g-ans").focus();
   }
   function end(){
-    clearInterval(timer);$("g-ans").disabled=true;$("g-go").textContent="Play again";
-    $("g-q").textContent="Time's up!";
+    clearInterval(timer);$("g-ans").disabled=true;$("g-go").textContent="Play again";$("g-q").textContent="Time's up!";
     var msg="You scored "+score+".";
     if(score>best){best=score;$("g-best").textContent=best;msg+=" New best!";try{localStorage.setItem("sprintBest",best);}catch(e){}}
+    if(signed&&score>0){board({method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":token},body:JSON.stringify({score:score})});msg+=" Saved to the leaderboard.";}
     $("g-msg").textContent=msg;
   }
   function start(){

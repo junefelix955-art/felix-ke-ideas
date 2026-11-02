@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Privacy &amp; Terms | Felix KE Ideas{% endblock %}
+{% block content %}
+<div class="legal">
+<h1>Privacy &amp; Terms</h1>
+<p>Last updated: 2 November 2026. This is a plain-language summary of how Felix KE Ideas works.</p>
+
+<h2>What we store</h2>
+<ul>
+<li><strong>Account:</strong> your username and a scrambled (hashed) version of your password. We never store your password itself. We do not ask for your email to create an account.</li>
+<li><strong>What you share:</strong> your posts, replies, likes, chat messages and game scores, shown with your username.</li>
+<li><strong>Contact form:</strong> the name, email and message you send, visible only to the site owner.</li>
+<li><strong>Reports:</strong> reports you make about content, visible only to the site owner.</li>
+</ul>
+
+<h2>Cookies and tracking</h2>
+<p>The site uses one session cookie to keep you signed in and protect forms. Your light or dark theme choice is saved in your browser. There are no advertising or analytics trackers. The site loads fonts from Google Fonts, so Google receives your IP address when a page loads. The site and its database are hosted on Render.</p>
+
+<h2>Community rules</h2>
+<ul>
+<li>Be respectful and helpful. No harassment, hate, threats, spam, adult content or illegal material.</li>
+<li>Only share things you wrote or have permission to share. Do not share passwords or other people's private information.</li>
+<li>The owner may remove content or accounts that break these rules, without notice.</li>
+<li>Posts, replies and chat messages are public to other members and visitors. Think before you share personal details.</li>
+<li>You are responsible for what you post. Posts are shared for learning and may be wrong, so check important information.</li>
+</ul>
+
+<h2>Your choices</h2>
+<p>You can delete your own posts and replies at any time. To delete your account and the data linked to it, or to ask what we hold about you, use the <a href="{{ url_for('contact') }}">contact form</a>{% if contact_email %} or email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}. Because there is no email on accounts, include your username so we can verify it is you.</p>
+
+<h2>Changes and no guarantees</h2>
+<p>The site is a personal project provided as is, without guarantees of uptime or accuracy. These terms may change, and the date above will be updated when they do.</p>
+</div>
+{% endblock %}

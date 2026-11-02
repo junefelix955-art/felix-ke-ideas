@@ -5,6 +5,7 @@
 <div class="admin-container">
   <div class="admin-top">
     <div><h1>Admin dashboard</h1><p>Messages sent through your website.</p></div>
+    <a href="{{ url_for('admin_reports') }}" class="admin-button admin-button-light">Moderation</a>
     <form action="{{ url_for('logout') }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="admin-button">Log out</button></form>
   </div>
 

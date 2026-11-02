@@ -84,6 +84,27 @@ def initialize_database():
             id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             title VARCHAR(120) NOT NULL, body VARCHAR(3000) NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        connection.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ")
+        connection.execute("""CREATE TABLE IF NOT EXISTS comments (
+            id BIGSERIAL PRIMARY KEY, post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            body VARCHAR(1000) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        connection.execute("""CREATE TABLE IF NOT EXISTS likes (
+            post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            PRIMARY KEY (post_id, user_id))""")
+        connection.execute("""CREATE TABLE IF NOT EXISTS chat_messages (
+            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            body VARCHAR(500) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        connection.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS category VARCHAR(20) NOT NULL DEFAULT 'Other'")
+        connection.execute("""CREATE TABLE IF NOT EXISTS reports (
+            id BIGSERIAL PRIMARY KEY, kind VARCHAR(10) NOT NULL, target_id BIGINT NOT NULL,
+            reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reason VARCHAR(300) NOT NULL, resolved BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (kind, target_id, reporter_id))""")
+        connection.execute("""CREATE TABLE IF NOT EXISTS game_scores (
+            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            score INT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
         connection.commit()
     finally:
         connection.close()
@@ -104,7 +125,7 @@ app.jinja_env.globals["csrf_token"] = get_csrf_token  # use {{ csrf_token() }}
 
 
 def validate_csrf():
-    submitted = request.form.get("csrf_token", "")
+    submitted = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
     expected = session.get("_csrf_token", "")
     if not submitted or not expected or not hmac.compare_digest(submitted, expected):
         abort(400, description="Invalid or missing security token. Reload the page and try again.")
@@ -125,7 +146,7 @@ def add_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register"):
+    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "admin_reports"):
         response.headers["Cache-Control"] = "no-store"  # back button can't reopen the dashboard
     return response
 
@@ -421,16 +442,133 @@ def signout():
     return redirect(url_for("index"))
 
 
+CATEGORIES = ["Maths", "Python", "Data", "Web", "Other"]
+REPORT_TABLES = {"post": "posts", "comment": "comments", "chat": "chat_messages"}
+
+
 @app.route("/community")
 def community():
+    uid = session.get("user_id") or 0
+    cat = request.args.get("category", "")
+    q = request.args.get("q", "").strip()[:60]
+    where, params = [], [uid]
+    if cat in CATEGORIES:
+        where.append("p.category = %s")
+        params.append(cat)
+    if q:
+        where.append("(p.title ILIKE %s OR p.body ILIKE %s)")
+        params += ["%" + q + "%"] * 2
+    sql = ("SELECT p.id, p.title, p.body, u.username, p.created_at, p.user_id, "
+           "(SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id), "
+           "EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = %s), p.category "
+           "FROM posts p JOIN users u ON u.id = p.user_id"
+           + (" WHERE " + " AND ".join(where) if where else "") + " ORDER BY p.id DESC LIMIT 50")
     c = get_db_connection()
     try:
-        posts = c.execute(
-            "SELECT p.id, p.title, p.body, u.username, p.created_at, p.user_id FROM posts p "
-            "JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 50").fetchall()
+        posts = c.execute(sql, params).fetchall()
+        comments = {}
+        ids = [p[0] for p in posts]
+        if ids:
+            rows = c.execute(
+                "SELECT c.id, c.post_id, u.username, c.body, c.created_at, c.user_id FROM comments c "
+                "JOIN users u ON u.id = c.user_id WHERE c.post_id = ANY(%s) ORDER BY c.id", (ids,)).fetchall()
+            for r in rows:
+                comments.setdefault(r[1], []).append(r)
     finally:
         c.close()
-    return render_template("community.html", posts=posts, user_id=session.get("user_id"), form={})
+    return render_template("community.html", posts=posts, comments=comments, user_id=session.get("user_id"),
+                           categories=CATEGORIES, active=cat, q=q)
+
+
+@app.route("/community/like/<int:post_id>", methods=["POST"])
+@user_required
+@limiter.limit("60 per minute")
+def like_post(post_id):
+    validate_csrf()
+    c = get_db_connection()
+    try:
+        removed = c.execute("DELETE FROM likes WHERE post_id = %s AND user_id = %s",
+                            (post_id, session["user_id"])).rowcount
+        if not removed:
+            c.execute("INSERT INTO likes (post_id, user_id) SELECT id, %s FROM posts WHERE id = %s "
+                      "ON CONFLICT DO NOTHING", (session["user_id"], post_id))
+        c.commit()
+    finally:
+        c.close()
+    return redirect(url_for("community") + "#post-" + str(post_id))
+
+
+@app.route("/community/comment/<int:post_id>", methods=["POST"])
+@user_required
+@limiter.limit("10 per minute;100 per day")
+def add_comment(post_id):
+    validate_csrf()
+    body = request.form.get("body", "").strip()
+    if not body or len(body) > 1000:
+        flash("A reply must be 1-1000 characters.", "error")
+    else:
+        c = get_db_connection()
+        try:
+            c.execute("INSERT INTO comments (post_id, user_id, body) SELECT id, %s, %s FROM posts WHERE id = %s",
+                      (session["user_id"], body, post_id))
+            c.commit()
+        finally:
+            c.close()
+    return redirect(url_for("community") + "#post-" + str(post_id))
+
+
+@app.route("/community/comment/delete/<int:comment_id>", methods=["POST"])
+def delete_comment(comment_id):
+    validate_csrf()
+    c = get_db_connection()
+    try:
+        row = c.execute("SELECT user_id, post_id FROM comments WHERE id = %s", (comment_id,)).fetchone()
+        if row and (session.get("admin_logged_in") or row[0] == session.get("user_id")):
+            c.execute("DELETE FROM comments WHERE id = %s", (comment_id,))
+            c.commit()
+            return redirect(url_for("community") + "#post-" + str(row[1]))
+    finally:
+        c.close()
+    flash("You can only delete your own replies.", "error")
+    return redirect(url_for("community"))
+
+
+@app.route("/chat")
+def chat():
+    return render_template("chat.html")
+
+
+@app.route("/api/chat", methods=["GET", "POST"])
+@limiter.limit("30 per minute", methods=["POST"])
+def api_chat():
+    uid = session.get("user_id")
+    c = get_db_connection()
+    try:
+        if request.method == "POST":
+            if not uid:
+                return jsonify(error="Sign in to chat."), 401
+            validate_csrf()
+            body = str((request.get_json(silent=True) or {}).get("body", "")).strip()
+            if not body or len(body) > 500:
+                return jsonify(error="Messages must be 1-500 characters."), 400
+            c.execute("INSERT INTO chat_messages (user_id, body) VALUES (%s, %s)", (uid, body))
+        if uid:
+            c.execute("UPDATE users SET last_seen = NOW() WHERE id = %s", (uid,))
+        c.commit()
+        after = request.args.get("after", type=int)
+        cols = "m.id, u.username, m.body, m.created_at"
+        if after:
+            rows = c.execute("SELECT " + cols + " FROM chat_messages m JOIN users u ON u.id = m.user_id "
+                             "WHERE m.id > %s ORDER BY m.id LIMIT 100", (after,)).fetchall()
+        else:
+            rows = c.execute("SELECT * FROM (SELECT " + cols + " FROM chat_messages m JOIN users u ON u.id = m.user_id "
+                             "ORDER BY m.id DESC LIMIT 50) t ORDER BY id").fetchall()
+        online = [r[0] for r in c.execute(
+            "SELECT username FROM users WHERE last_seen > NOW() - INTERVAL '45 seconds' ORDER BY username").fetchall()]
+    finally:
+        c.close()
+    return jsonify(messages=[{"id": r[0], "user": r[1], "body": r[2], "time": r[3].isoformat()} for r in rows],
+                   online=online, me=session.get("username"))
 
 
 @app.route("/community/new", methods=["POST"])
@@ -444,8 +582,9 @@ def new_post():
         return redirect(url_for("community"))
     c = get_db_connection()
     try:
-        c.execute("INSERT INTO posts (user_id, title, body) VALUES (%s, %s, %s)",
-                  (session["user_id"], title, body))
+        category = request.form.get("category", "Other")
+        c.execute("INSERT INTO posts (user_id, title, body, category) VALUES (%s, %s, %s, %s)",
+                  (session["user_id"], title, body, category if category in CATEGORIES else "Other"))
         c.commit()
     finally:
         c.close()
@@ -468,6 +607,100 @@ def delete_post(post_id):
     finally:
         c.close()
     return redirect(url_for("community"))
+
+
+@app.route("/report", methods=["POST"])
+@user_required
+@limiter.limit("10 per minute;50 per day")
+def report():
+    validate_csrf()
+    kind = request.form.get("kind", "")
+    try:
+        target = int(request.form.get("target_id", ""))
+    except ValueError:
+        target = 0
+    reason = request.form.get("reason", "").strip()[:300] or "No reason given"
+    if kind in REPORT_TABLES and target:
+        c = get_db_connection()
+        try:
+            c.execute("INSERT INTO reports (kind, target_id, reporter_id, reason) VALUES (%s, %s, %s, %s) "
+                      "ON CONFLICT DO NOTHING", (kind, target, session["user_id"], reason))
+            c.commit()
+        finally:
+            c.close()
+    if request.headers.get("X-CSRF-Token"):
+        return jsonify(ok=True)
+    flash("Thanks. A moderator will review it.", "success")
+    nxt = request.form.get("next", "/community")
+    return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/community")
+
+
+@app.route("/admin/reports")
+@login_required
+def admin_reports():
+    c = get_db_connection()
+    try:
+        rows = c.execute(
+            "SELECT r.id, r.kind, r.target_id, r.reason, ru.username, r.created_at, "
+            "CASE r.kind WHEN 'post' THEN (SELECT title || ': ' || body FROM posts WHERE id = r.target_id) "
+            "WHEN 'comment' THEN (SELECT body FROM comments WHERE id = r.target_id) "
+            "ELSE (SELECT body FROM chat_messages WHERE id = r.target_id) END "
+            "FROM reports r JOIN users ru ON ru.id = r.reporter_id WHERE NOT r.resolved ORDER BY r.id DESC").fetchall()
+    finally:
+        c.close()
+    return render_template("reports.html", reports=rows)
+
+
+@app.route("/admin/reports/<int:report_id>/<action>", methods=["POST"])
+@login_required
+def resolve_report(report_id, action):
+    validate_csrf()
+    if action not in ("remove", "dismiss"):
+        abort(404)
+    c = get_db_connection()
+    try:
+        row = c.execute("SELECT kind, target_id FROM reports WHERE id = %s", (report_id,)).fetchone()
+        if row:
+            if action == "remove":
+                c.execute("DELETE FROM " + REPORT_TABLES[row[0]] + " WHERE id = %s", (row[1],))
+            c.execute("UPDATE reports SET resolved = TRUE WHERE kind = %s AND target_id = %s", row)
+            c.commit()
+            flash("Content removed." if action == "remove" else "Report dismissed.", "success")
+    finally:
+        c.close()
+    return redirect(url_for("admin_reports"))
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@app.route("/api/scores", methods=["GET", "POST"])
+@limiter.limit("20 per minute", methods=["POST"])
+def api_scores():
+    uid = session.get("user_id")
+    c = get_db_connection()
+    try:
+        if request.method == "POST":
+            if not uid:
+                return jsonify(error="Sign in to save scores."), 401
+            validate_csrf()
+            try:
+                score = int((request.get_json(silent=True) or {}).get("score", 0))
+            except (TypeError, ValueError):
+                score = 0
+            if 0 < score <= 100:
+                c.execute("INSERT INTO game_scores (user_id, score) VALUES (%s, %s)", (uid, score))
+                c.commit()
+        q = ("SELECT u.username, MAX(s.score) FROM game_scores s JOIN users u ON u.id = s.user_id{} "
+             "GROUP BY u.username ORDER BY 2 DESC, u.username LIMIT 10")
+        week = c.execute(q.format(" WHERE s.created_at > NOW() - INTERVAL '7 days'")).fetchall()
+        alltime = c.execute(q.format("")).fetchall()
+    finally:
+        c.close()
+    pack = lambda rows: [{"user": r[0], "score": r[1]} for r in rows]
+    return jsonify(week=pack(week), all=pack(alltime), signed_in=bool(uid))
 
 
 @app.route("/play")
