@@ -4,7 +4,7 @@ import csv
 import io
 import hmac
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 import psycopg
@@ -31,6 +31,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=not DEBUG,  # HTTPS only in production
     PERMANENT_SESSION_LIFETIME=timedelta(hours=2),
+    MAX_CONTENT_LENGTH=3 * 1024 * 1024,  # Phase 7 (library) will raise this for PDF/Word uploads
 )
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
@@ -105,6 +106,29 @@ def initialize_database():
         connection.execute("""CREATE TABLE IF NOT EXISTS game_scores (
             id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             score INT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        # ---- Phase 1-2: student profiles and notifications (safe on existing data) ----
+        for col in (
+            "full_name VARCHAR(60) NOT NULL DEFAULT ''",
+            "university VARCHAR(80) NOT NULL DEFAULT ''",
+            "course VARCHAR(80) NOT NULL DEFAULT ''",
+            "interests VARCHAR(200) NOT NULL DEFAULT ''",
+            "bio VARCHAR(300) NOT NULL DEFAULT ''",
+            "avatar BYTEA",
+            "avatar_mime VARCHAR(20)",
+            "avatar_v INT NOT NULL DEFAULT 0",
+            "show_university BOOLEAN NOT NULL DEFAULT TRUE",
+            "show_course BOOLEAN NOT NULL DEFAULT TRUE",
+            "show_interests BOOLEAN NOT NULL DEFAULT TRUE",
+            "show_bio BOOLEAN NOT NULL DEFAULT TRUE",
+        ):
+            connection.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS " + col)
+        connection.execute("""CREATE TABLE IF NOT EXISTS notifications (
+            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            kind VARCHAR(20) NOT NULL, title VARCHAR(120) NOT NULL, body VARCHAR(300) NOT NULL DEFAULT '',
+            link VARCHAR(200) NOT NULL DEFAULT '', is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        connection.execute("CREATE INDEX IF NOT EXISTS notifications_user_idx "
+                           "ON notifications (user_id, is_read, id DESC)")
         connection.commit()
     finally:
         connection.close()
@@ -146,7 +170,8 @@ def add_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "admin_reports"):
+    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "admin_reports",
+                            "dashboard", "notifications", "api_notifications", "settings", "profile", "my_profile"):
         response.headers["Cache-Control"] = "no-store"  # back button can't reopen the dashboard
     return response
 
@@ -163,6 +188,11 @@ def bad_request(e):
 @app.errorhandler(404)
 def not_found(e):
     return error_page(404, "That page does not exist.")
+
+
+@app.errorhandler(413)
+def too_large(e):
+    return error_page(413, "That file is too large.")
 
 
 @app.errorhandler(429)
@@ -402,10 +432,12 @@ def register():
                 row = c.execute(
                     "INSERT INTO users (username, password_hash) VALUES (%s, %s) RETURNING id",
                     (username, generate_password_hash(password))).fetchone()
+                notify(c, row[0], "system", "Welcome to Felix KE Ideas!",
+                       "Complete your profile to get started.", "/settings")
                 c.commit()
                 start_session(row[0], username)
                 flash("Welcome to the community, " + username + "!", "success")
-                return redirect(url_for("community"))
+                return redirect(url_for("dashboard"))
             except psycopg.errors.UniqueViolation:
                 error = "That username is taken. Try another."
             finally:
@@ -429,7 +461,7 @@ def signin():
             c.close()
         if row and check_password_hash(row[2], request.form.get("password", "")):
             start_session(row[0], row[1])
-            return redirect(url_for("community"))
+            return redirect(url_for("dashboard"))
         flash("Wrong username or password.", "error")
         return render_template("account.html", mode="signin", username=username), 400
     return render_template("account.html", mode="signin", username="")
@@ -511,6 +543,10 @@ def add_comment(post_id):
         try:
             c.execute("INSERT INTO comments (post_id, user_id, body) SELECT id, %s, %s FROM posts WHERE id = %s",
                       (session["user_id"], body, post_id))
+            owner = c.execute("SELECT user_id, title FROM posts WHERE id = %s", (post_id,)).fetchone()
+            if owner and owner[0] != session["user_id"]:
+                notify(c, owner[0], "reply", session["username"] + " replied to your post", owner[1],
+                       "/community#post-" + str(post_id))
             c.commit()
         finally:
             c.close()
@@ -706,6 +742,379 @@ def api_scores():
 @app.route("/play")
 def play():
     return render_template("play.html")
+
+
+# ======================================================================
+# STUDENT PLATFORM - Phase 1 (profiles) and Phase 2 (dashboard, notifications)
+# ======================================================================
+CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]+")
+AVATAR_MAX_BYTES = 300_000  # the settings page shrinks pictures to ~256px before upload
+USER_COLS = ("id", "username", "full_name", "university", "course", "interests", "bio", "avatar_v",
+             "created_at", "show_university", "show_course", "show_interests", "show_bio")
+
+
+def clean_text(value, limit):
+    """Turn control characters/newlines into spaces, trim, and cap the length."""
+    return CONTROL_RE.sub(" ", value or "").strip()[:limit]
+
+
+def safe_next(target, default):
+    """Only allow redirects to paths on this site."""
+    if target and target.startswith("/") and not target.startswith("//"):
+        return target
+    return default
+
+
+def load_user(c, key, value):
+    """Return one user's profile as a dict (never loads the avatar bytes). key is 'id' or 'username'."""
+    where = "id = %s" if key == "id" else "lower(username) = lower(%s)"
+    row = c.execute("SELECT " + ", ".join(USER_COLS) + " FROM users WHERE " + where, (value,)).fetchone()
+    return dict(zip(USER_COLS, row)) if row else None
+
+
+def profile_complete(u):
+    return bool(u["full_name"] and u["university"] and u["course"])
+
+
+def user_stats(c, uid):
+    r = c.execute(
+        "SELECT (SELECT COUNT(*) FROM posts WHERE user_id = %s), "
+        "(SELECT COUNT(*) FROM comments WHERE user_id = %s), "
+        "(SELECT COUNT(*) FROM chat_messages WHERE user_id = %s), "
+        "(SELECT COALESCE(MAX(score), 0) FROM game_scores WHERE user_id = %s)", (uid, uid, uid, uid)).fetchone()
+    # buddies and squads arrive in Phases 3 and 4; keep the keys so templates do not change later.
+    return {"posts": r[0], "replies": r[1], "messages": r[2], "best_score": r[3], "buddies": 0, "squads": 0}
+
+
+def notify(conn, user_id, kind, title, body="", link=""):
+    """Add a notification for a user. Uses the caller's connection; the CALLER commits.
+    kind: message | friend | squad | squad_message | answer | session | reply | system
+    Later phases call this, e.g. notify(c, friend_id, "friend", "Ann sent you a buddy request", link="/buddies")."""
+    conn.execute("INSERT INTO notifications (user_id, kind, title, body, link) VALUES (%s, %s, %s, %s, %s)",
+                 (user_id, kind, title[:120], body[:300], link[:200]))
+
+
+@app.template_filter("ago")
+def ago(dt):
+    if not dt:
+        return ""
+    secs = int((datetime.now(timezone.utc) - dt).total_seconds())
+    if secs < 60:
+        return "just now"
+    if secs < 3600:
+        return str(secs // 60) + " min ago"
+    if secs < 86400:
+        return str(secs // 3600) + " h ago"
+    if secs < 7 * 86400:
+        return str(secs // 86400) + " d ago"
+    return dt.strftime("%d %b %Y")
+
+
+@app.context_processor
+def notification_badge():
+    """Unread count for the bell in the header (0 when signed out or if the database hiccups)."""
+    uid = session.get("user_id")
+    if not uid:
+        return {"unread_count": 0}
+    try:
+        c = get_db_connection()
+        try:
+            n = c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = %s AND NOT is_read", (uid,)).fetchone()[0]
+        finally:
+            c.close()
+        return {"unread_count": n}
+    except Exception:
+        return {"unread_count": 0}
+
+
+# ---------- Placeholder pages for phases that are not built yet ----------
+# Replace an entry's view with the real feature when its phase is done (same endpoint name keeps the menu working).
+COMING_SOON = [
+    ("buddies", "/buddies", "Buddies", 3, "Find students, send friend requests and start private chats.", None),
+    ("squads", "/squads", "My Squads", 4, "Create or join academic groups, each with its own chat.", None),
+    ("messages", "/messages", "Messages", 5, "Private conversations with your buddies.", ("Open the group chat", "chat")),
+    ("problem_solver", "/problem-solver", "Problem Solver", 8,
+     "Scan or type a maths problem and get step-by-step solutions.", None),
+    ("library", "/library", "Academic Library", 7, "Share and download notes, past papers and revision material.", None),
+    ("leaderboard", "/leaderboard", "Leaderboard", 9,
+     "Rankings that reward real academic help, not message counts.", ("See the Maths Sprint leaderboard", "play")),
+    ("study_sessions", "/study-sessions", "Study Sessions", 10,
+     "Plan group study sessions with a calendar and reminders.", None),
+]
+
+
+def _register_coming_soon(endpoint, path, title, phase, blurb, alt):
+    @user_required
+    def view():
+        return render_template("coming_soon.html", title=title, phase=phase, blurb=blurb, icon_name=endpoint,
+                               alt=(alt[0], url_for(alt[1])) if alt else None)
+    app.add_url_rule(path, endpoint, view)
+
+
+for _spec in COMING_SOON:
+    _register_coming_soon(*_spec)
+
+
+# ---------- Getting started checklist ----------
+def onboarding_steps(me, stats):
+    """`available` False = that phase is not built yet, so it shows 'Coming soon' and is left out of the progress bar."""
+    return [
+        {"title": "Complete your profile", "desc": "Add your name, university and course.",
+         "done": profile_complete(me), "available": True, "url": url_for("settings")},
+        {"title": "Add friends", "desc": "Find students and send buddy requests.",
+         "done": False, "available": False, "url": url_for("buddies")},
+        {"title": "Join your first squad", "desc": "Discover a public squad that fits your subjects.",
+         "done": False, "available": False, "url": url_for("squads")},
+        {"title": "Create your first squad", "desc": "Start a study group for your course.",
+         "done": False, "available": False, "url": url_for("squads")},
+        {"title": "Send your first message", "desc": "Say hello in the group chat.",
+         "done": stats["messages"] > 0, "available": True, "url": url_for("chat")},
+        {"title": "Try the maths problem scanner", "desc": "Scan a question and see the steps.",
+         "done": False, "available": False, "url": url_for("problem_solver")},
+    ]
+
+
+# ---------- Dashboard ----------
+@app.route("/dashboard")
+@user_required
+def dashboard():
+    uid = session["user_id"]
+    c = get_db_connection()
+    try:
+        me = load_user(c, "id", uid)
+        if not me:  # account removed while the session was still open
+            session.clear()
+            return redirect(url_for("signin"))
+        stats = user_stats(c, uid)
+        notes = c.execute("SELECT id, kind, title, body, link, is_read, created_at FROM notifications "
+                          "WHERE user_id = %s ORDER BY id DESC LIMIT 5", (uid,)).fetchall()
+    finally:
+        c.close()
+    steps = onboarding_steps(me, stats)
+    available = [s for s in steps if s["available"]]
+    done = sum(1 for s in available if s["done"])
+    percent = int(100 * done / len(available)) if available else 0
+    return render_template("dashboard.html", me=me, stats=stats, notes=notes, steps=steps,
+                           done=done, total=len(available), percent=percent)
+
+
+# ---------- Notifications ----------
+@app.route("/notifications")
+@user_required
+def notifications():
+    only_unread = request.args.get("filter") == "unread"
+    c = get_db_connection()
+    try:
+        rows = c.execute("SELECT id, kind, title, body, link, is_read, created_at FROM notifications "
+                         "WHERE user_id = %s" + (" AND NOT is_read" if only_unread else "") +
+                         " ORDER BY id DESC LIMIT 100", (session["user_id"],)).fetchall()
+    finally:
+        c.close()
+    return render_template("notifications.html", notes=rows, only_unread=only_unread)
+
+
+@app.route("/notifications/<int:nid>/read", methods=["POST"])
+@user_required
+def notification_read(nid):
+    validate_csrf()
+    c = get_db_connection()
+    try:
+        row = c.execute("UPDATE notifications SET is_read = TRUE WHERE id = %s AND user_id = %s RETURNING link",
+                        (nid, session["user_id"])).fetchone()
+        c.commit()
+    finally:
+        c.close()
+    if row and row[0] and request.form.get("go"):
+        return redirect(safe_next(row[0], url_for("notifications")))
+    return redirect(safe_next(request.form.get("next"), url_for("notifications")))
+
+
+@app.route("/notifications/read-all", methods=["POST"])
+@user_required
+def notifications_read_all():
+    validate_csrf()
+    c = get_db_connection()
+    try:
+        c.execute("UPDATE notifications SET is_read = TRUE WHERE user_id = %s AND NOT is_read", (session["user_id"],))
+        c.commit()
+    finally:
+        c.close()
+    flash("All notifications marked as read.", "success")
+    return redirect(safe_next(request.form.get("next"), url_for("notifications")))
+
+
+@app.route("/api/notifications")
+def api_notifications():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify(unread=0, items=[])
+    c = get_db_connection()
+    try:
+        unread = c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = %s AND NOT is_read", (uid,)).fetchone()[0]
+        rows = []
+        if not request.args.get("count"):
+            rows = c.execute("SELECT id, kind, title, body, link, is_read, created_at FROM notifications "
+                             "WHERE user_id = %s ORDER BY id DESC LIMIT 10", (uid,)).fetchall()
+    finally:
+        c.close()
+    return jsonify(unread=unread, items=[
+        {"id": r[0], "kind": r[1], "title": r[2], "body": r[3], "link": r[4], "read": r[5], "time": r[6].isoformat()}
+        for r in rows])
+
+
+# ---------- Settings: profile details, privacy, picture, password ----------
+@app.route("/settings", methods=["GET", "POST"])
+@user_required
+@limiter.limit("20 per minute", methods=["POST"])
+def settings():
+    uid = session["user_id"]
+    c = get_db_connection()
+    try:
+        if request.method == "POST":
+            validate_csrf()
+            f = request.form
+            c.execute(
+                "UPDATE users SET full_name = %s, university = %s, course = %s, interests = %s, bio = %s, "
+                "show_university = %s, show_course = %s, show_interests = %s, show_bio = %s WHERE id = %s",
+                (clean_text(f.get("full_name"), 60), clean_text(f.get("university"), 80),
+                 clean_text(f.get("course"), 80), clean_text(f.get("interests"), 200), clean_text(f.get("bio"), 300),
+                 "show_university" in f, "show_course" in f, "show_interests" in f, "show_bio" in f, uid))
+            c.commit()
+            flash("Profile saved.", "success")
+            return redirect(url_for("settings"))
+        me = load_user(c, "id", uid)
+    finally:
+        c.close()
+    if not me:
+        session.clear()
+        return redirect(url_for("signin"))
+    return render_template("settings.html", me=me, avatar_max_kb=AVATAR_MAX_BYTES // 1000)
+
+
+def sniff_image(data):
+    """Identify the real image type from its first bytes (never trust the filename or browser-supplied type)."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+@app.route("/settings/avatar", methods=["POST"])
+@user_required
+@limiter.limit("10 per minute;40 per day")
+def settings_avatar():
+    validate_csrf()
+    f = request.files.get("avatar")
+    data = f.stream.read(AVATAR_MAX_BYTES + 1) if f else b""
+    mime = sniff_image(data)
+    if not data:
+        flash("Choose a picture first.", "error")
+    elif len(data) > AVATAR_MAX_BYTES:
+        flash("That picture is too large. Use one under %d KB." % (AVATAR_MAX_BYTES // 1000), "error")
+    elif not mime:
+        flash("Use a PNG, JPEG or WebP picture.", "error")
+    else:
+        c = get_db_connection()
+        try:
+            # avatar_v is a timestamp: it changes the picture's URL so browsers never show an old one.
+            c.execute("UPDATE users SET avatar = %s, avatar_mime = %s, avatar_v = EXTRACT(EPOCH FROM NOW())::int "
+                      "WHERE id = %s", (data, mime, session["user_id"]))
+            c.commit()
+        finally:
+            c.close()
+        flash("Profile picture updated.", "success")
+    return redirect(url_for("settings"))
+
+
+@app.route("/settings/avatar/remove", methods=["POST"])
+@user_required
+def settings_avatar_remove():
+    validate_csrf()
+    c = get_db_connection()
+    try:
+        c.execute("UPDATE users SET avatar = NULL, avatar_mime = NULL, avatar_v = 0 WHERE id = %s",
+                  (session["user_id"],))
+        c.commit()
+    finally:
+        c.close()
+    flash("Profile picture removed.", "success")
+    return redirect(url_for("settings"))
+
+
+@app.route("/avatar/<int:uid>")
+def avatar(uid):
+    # Only signed-in members (or the admin) can load pictures, so they cannot be scraped by outsiders.
+    if not session.get("user_id") and not session.get("admin_logged_in"):
+        abort(404)
+    c = get_db_connection()
+    try:
+        row = c.execute("SELECT avatar, avatar_mime FROM users WHERE id = %s", (uid,)).fetchone()
+    finally:
+        c.close()
+    if not row or not row[0]:
+        abort(404)
+    resp = Response(bytes(row[0]), mimetype=row[1])
+    resp.headers["Cache-Control"] = "private, max-age=86400"  # URL carries ?v=, so a new picture busts the cache
+    resp.headers["Content-Security-Policy"] = "default-src 'none'"
+    return resp
+
+
+@app.route("/settings/password", methods=["POST"])
+@user_required
+@limiter.limit("5 per minute;20 per hour")
+def settings_password():
+    validate_csrf()
+    current, new = request.form.get("current_password", ""), request.form.get("new_password", "")
+    c = get_db_connection()
+    try:
+        row = c.execute("SELECT password_hash FROM users WHERE id = %s", (session["user_id"],)).fetchone()
+        if not row or not check_password_hash(row[0], current):
+            flash("Your current password is wrong.", "error")
+        elif len(new) < 8 or len(new) > 128:
+            flash("New password must be 8-128 characters.", "error")
+        elif new == current:
+            flash("Choose a password different from your current one.", "error")
+        else:
+            c.execute("UPDATE users SET password_hash = %s WHERE id = %s",
+                      (generate_password_hash(new), session["user_id"]))
+            c.commit()
+            session["_csrf_token"] = secrets.token_urlsafe(32)
+            flash("Password changed.", "success")
+    finally:
+        c.close()
+    return redirect(url_for("settings"))
+
+
+# ---------- Profiles ----------
+@app.route("/profile")
+@user_required
+def my_profile():
+    return redirect(url_for("profile", username=session["username"]))
+
+
+@app.route("/u/<username>")
+@user_required
+def profile(username):
+    if not USERNAME_RE.match(username):
+        abort(404)
+    c = get_db_connection()
+    try:
+        u = load_user(c, "username", username)
+        if not u:
+            abort(404)
+        stats = user_stats(c, u["id"])
+        posts = c.execute("SELECT id, title, category, created_at FROM posts WHERE user_id = %s "
+                          "ORDER BY id DESC LIMIT 5", (u["id"],)).fetchall()
+    finally:
+        c.close()
+    own = u["id"] == session["user_id"]
+    # Owners see everything; other members only see what the owner chose to show.
+    show = {k: own or u["show_" + k] for k in ("university", "course", "interests", "bio")}
+    tags = [t.strip() for t in u["interests"].split(",") if t.strip()][:12] if show["interests"] else []
+    return render_template("profile.html", u=u, stats=stats, posts=posts, own=own, show=show, tags=tags)
 
 
 if __name__ == "__main__":

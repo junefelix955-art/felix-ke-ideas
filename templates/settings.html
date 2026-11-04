@@ -1,0 +1,112 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar %}
+{% block title %}Settings | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head">
+  <h1>Settings</h1>
+  <p>Edit your profile, choose what others can see, and manage your account.</p>
+</header>
+
+<div class="settings-grid">
+<div class="settings-col">
+  <section class="card" aria-labelledby="h-pic">
+    <h2 id="h-pic">Profile picture</h2>
+    <div class="pic-row">
+      <span id="pic-preview">{{ avatar(me, 96) }}</span>
+      <div>
+        <form method="POST" action="{{ url_for('settings_avatar') }}" enctype="multipart/form-data" id="pic-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label for="avatar">Choose a picture</label>
+          <input type="file" id="avatar" name="avatar" accept="image/png,image/jpeg,image/webp" required>
+          <p class="field-hint">PNG, JPEG or WebP. It is resized for you automatically (max {{ avatar_max_kb }} KB).</p>
+          <button type="submit" class="button" id="pic-save">Upload picture</button>
+        </form>
+        {% if me.avatar_v %}
+        <form method="POST" action="{{ url_for('settings_avatar_remove') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="link-danger">Remove picture</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-pass">
+    <h2 id="h-pass">Change password</h2>
+    <form method="POST" action="{{ url_for('settings_password') }}" data-busy>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="current_password">Current password</label>
+      <input type="password" id="current_password" name="current_password" autocomplete="current-password" maxlength="128" required>
+      <label for="new_password">New password</label>
+      <input type="password" id="new_password" name="new_password" autocomplete="new-password" minlength="8" maxlength="128" required>
+      <p class="field-hint">At least 8 characters. There is no password reset, so keep it somewhere safe.</p>
+      <button type="submit" class="button">Change password</button>
+    </form>
+  </section>
+  <section class="card" aria-labelledby="h-acct">
+    <h2 id="h-acct">Account</h2>
+    <p>Signed in as <strong>@{{ me.username }}</strong>. Joined {{ me.created_at.strftime('%d %b %Y') }}.</p>
+    <p>To delete your account and its data, use the <a href="{{ url_for('contact') }}">contact form</a> with your username (see <a href="{{ url_for('privacy') }}">Privacy &amp; Terms</a>).</p>
+    <a class="button button-outline" href="{{ url_for('my_profile') }}">View my public profile</a>
+  </section>
+</div>
+<div class="settings-col">
+  <section class="card" aria-labelledby="h-details">
+    <h2 id="h-details">Profile details</h2>
+    <form method="POST" action="{{ url_for('settings') }}" data-busy>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="full_name">Full name</label>
+      <input type="text" id="full_name" name="full_name" value="{{ me.full_name }}" maxlength="60" autocomplete="name" placeholder="e.g. Felix Atandi">
+      <label for="university">University</label>
+      <input type="text" id="university" name="university" value="{{ me.university }}" maxlength="80" placeholder="e.g. Maseno University">
+      <label for="course">Course</label>
+      <input type="text" id="course" name="course" value="{{ me.course }}" maxlength="80" placeholder="e.g. Mathematical Science with IT">
+      <label for="interests">Academic interests</label>
+      <input type="text" id="interests" name="interests" value="{{ me.interests }}" maxlength="200" placeholder="e.g. Calculus, Python, Statistics">
+      <p class="field-hint">Separate interests with commas.</p>
+      <label for="bio">Short biography</label>
+      <textarea id="bio" name="bio" rows="3" maxlength="300" placeholder="A line or two about you">{{ me.bio }}</textarea>
+
+      <fieldset class="privacy">
+        <legend>Who can see what</legend>
+        <p class="field-hint">Your name and picture are always visible to signed-in members. Choose the rest:</p>
+        <label class="check"><input type="checkbox" name="show_university"{% if me.show_university %} checked{% endif %}> Show my university</label>
+        <label class="check"><input type="checkbox" name="show_course"{% if me.show_course %} checked{% endif %}> Show my course</label>
+        <label class="check"><input type="checkbox" name="show_interests"{% if me.show_interests %} checked{% endif %}> Show my academic interests</label>
+        <label class="check"><input type="checkbox" name="show_bio"{% if me.show_bio %} checked{% endif %}> Show my biography</label>
+      </fieldset>
+      <button type="submit" class="button">Save profile</button>
+    </form>
+  </section>
+
+
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  /* Show "Saving..." on submit so slow connections get feedback and double-clicks are ignored. */
+  document.querySelectorAll('form[data-busy],#pic-form').forEach(function(f){
+    f.addEventListener('submit',function(){var b=f.querySelector('button[type=submit]');if(b){b.disabled=true;b.textContent='Saving...';}});
+  });
+  /* Shrink the chosen picture to a 256px square JPEG in the browser; the server still validates it. */
+  var input=document.getElementById('avatar'),box=document.getElementById('pic-preview');
+  if(!input||!window.FileReader||!window.DataTransfer) return;
+  input.addEventListener('change',function(){
+    var f=input.files[0]; if(!f||f.type.indexOf('image/')!==0) return;
+    var url=URL.createObjectURL(f),img=new Image();
+    img.onload=function(){
+      var s=256,m=Math.min(img.width,img.height),c=document.createElement('canvas');
+      c.width=c.height=s; c.getContext('2d').drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,s,s);
+      c.toBlob(function(b){
+        if(b){try{var dt=new DataTransfer();dt.items.add(new File([b],'avatar.jpg',{type:'image/jpeg'}));input.files=dt.files;}catch(e){}}
+        var prev=box.querySelector('.av');
+        if(prev){prev.textContent='';var i=document.createElement('img');i.alt='';i.src=url;prev.appendChild(i);}
+      },'image/jpeg',0.88);
+    };
+    img.src=url;
+  });
+})();
+</script>
+{% endblock %}
