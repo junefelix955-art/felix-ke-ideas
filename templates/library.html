@@ -1,0 +1,37 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Academic Library | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head head-row"><div><h1>Academic Library</h1><p>Notes, past papers and study guides shared by students. {{ total }} resource{{ '' if total == 1 else 's' }}.</p></div>
+  <a class="button" href="{{ url_for('library_upload') }}">Share a resource</a></header>
+<form method="GET" class="card filters" role="search">
+  <div class="filter-grid">
+    <div class="wide-field"><label for="q">Search</label><input type="search" id="q" name="q" value="{{ f.get('q','') }}" maxlength="60" placeholder="Title, subject, course..."></div>
+    <div><label for="type">Type</label><select id="type" name="type"><option value="">All types</option>{% for t in doc_types %}<option{% if f.get('type') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div><label for="university">University</label><input type="text" id="university" name="university" value="{{ f.get('university','') }}" maxlength="80"></div>
+    <div><label for="course">Course</label><input type="text" id="course" name="course" value="{{ f.get('course','') }}" maxlength="80"></div>
+    <div><label for="subject">Subject</label><input type="text" id="subject" name="subject" value="{{ f.get('subject','') }}" maxlength="60"></div>
+    <div><label for="year">Year</label><input type="text" id="year" name="year" value="{{ f.get('year','') }}" maxlength="12" placeholder="e.g. 2025"></div>
+    <div><label for="semester">Semester</label><select id="semester" name="semester"><option value="">Any</option>{% for s in semesters %}<option{% if f.get('semester') == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+    <div><label for="sort">Sort by</label><select id="sort" name="sort"><option value="">Newest</option><option value="popular"{% if f.get('sort') == 'popular' %} selected{% endif %}>Most downloaded</option></select></div>
+  </div>
+  <div class="btn-row"><button class="button" type="submit">Search</button><a class="button button-outline" href="{{ url_for('library') }}">Clear</a></div>
+</form>
+<div class="lib-grid">
+  {% for r in items %}
+  <a class="card lib-card" href="{{ url_for('library_item', rid=r.id) }}">
+    <span class="file-kind big">{{ r.kind|upper }}</span>
+    <strong>{{ r.title }}</strong>
+    <span class="chips"><span class="badge">{{ r.doc_type }}</span>{% if r.year %}<span class="badge">{{ r.year }}{% if r.semester %} S{{ r.semester }}{% endif %}</span>{% endif %}</span>
+    <small>{{ [r.subject, r.course, r.university]|select|join(' · ') }}</small>
+    <small>By {{ r.username }} &middot; {{ r.size_h }} &middot; {{ r.downloads }} download{{ '' if r.downloads == 1 else 's' }}</small>
+  </a>
+  {% else %}<div class="card empty wide"><p>Nothing found. Try fewer filters, or share the first resource.</p><a class="button" href="{{ url_for('library_upload') }}">Share a resource</a></div>{% endfor %}
+</div>
+{% if pages > 1 %}<nav class="pager" aria-label="Pages">
+  {% set args = f.to_dict() if f.to_dict is defined else {} %}
+  {% if page > 1 %}<a class="button button-outline" href="{{ url_for('library', **dict(args, page=page-1)) }}">&larr; Previous</a>{% endif %}
+  <span>Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="button button-outline" href="{{ url_for('library', **dict(args, page=page+1)) }}">Next &rarr;</a>{% endif %}
+</nav>{% endif %}
+{% endblock %}

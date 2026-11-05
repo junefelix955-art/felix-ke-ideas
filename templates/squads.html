@@ -1,0 +1,68 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, squad_icon, post_button, icon %}
+{% block title %}My Squads | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head head-row">
+  <div><h1>My Squads</h1><p>Study groups for your subjects, each with its own chat, questions, quizzes and sessions.</p></div>
+  <a class="button" href="{{ url_for('squad_new') }}">Create squad</a>
+</header>
+
+{% if invites %}
+<section class="card" aria-labelledby="h-inv"><h2 id="h-inv">Invitations <span class="pill">{{ invites|length }}</span></h2>
+  {% for i in invites %}
+  <article class="person">
+    {{ squad_icon(i, 48) }}
+    <div class="person-info"><a class="person-name" href="{{ url_for('squad_detail', sid=i.id) }}">{{ i.name }}</a><span>Invited by {{ i.by or 'a member' }}</span></div>
+    <div class="person-actions">{{ post_button(url_for('squad_invitation', sid=i.id, action='accept'), 'Join') }}{{ post_button(url_for('squad_invitation', sid=i.id, action='decline'), 'Decline', 'button-outline') }}</div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="squad-grid">
+  {% for s in mine %}
+  <article class="card squad-card{% if s.archived %} archived{% endif %}">
+    <div class="squad-top">
+      {{ squad_icon(s, 56) }}
+      <div class="squad-title"><h3><a href="{{ url_for('squad_detail', sid=s.id) }}">{{ s.name }}</a></h3>
+        <p>{{ s.category }} &middot; {{ 'Private' if s.privacy == 'private' else 'Public' }}{% if s.archived %} &middot; Archived{% endif %}</p></div>
+      {% if s.unread %}<span class="pill" title="Unread messages">{{ s.unread }}<span class="sr-only"> unread messages</span></span>{% endif %}
+    </div>
+    <div class="faces">
+      {% for f in s.faces %}{{ avatar(f, 32) }}{% endfor %}
+      <span class="faces-text">{{ s.members }} member{{ '' if s.members == 1 else 's' }} &middot; <i class="status on inline"></i>{{ s.online }} online</span>
+    </div>
+    <p class="recent">{% if s.last_activity %}Last activity {{ s.last_activity|ago }}{% else %}No messages yet{% endif %}</p>
+    <div class="btn-row"><a class="button" href="{{ url_for('thread', tid=s.thread_id) }}">Open chat</a><a class="button button-outline" href="{{ url_for('squad_detail', sid=s.id) }}">Details</a></div>
+  </article>
+  {% else %}
+  <div class="card empty wide">
+    <svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><circle cx="32" cy="22" r="9" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="12" cy="28" r="6" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="52" cy="28" r="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M16 56v-4a16 16 0 0 1 32 0v4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+    <p>You are not in any squads yet. Create one for your course, or join a public squad below.</p>
+    <a class="button" href="{{ url_for('squad_new') }}">Create your first squad</a>
+  </div>
+  {% endfor %}
+</div>
+
+<section class="card" id="discover" aria-labelledby="h-disc">
+  <h2 id="h-disc">Discover public squads</h2>
+  <form method="GET" action="{{ url_for('squads') }}#discover" class="filter-bar squad-filter" role="search">
+    <label for="q" class="sr-only">Search squads</label><input type="search" id="q" name="q" value="{{ q }}" placeholder="Search squads..." maxlength="40">
+    <label for="category" class="sr-only">Category</label>
+    <select id="category" name="category"><option value="">All categories</option>{% for c in categories %}<option{% if c == cat %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+    <button type="submit" class="button">Filter</button>
+  </form>
+  <div class="squad-grid">
+    {% for s in discover %}
+    <article class="card squad-card flat">
+      <div class="squad-top">{{ squad_icon(s, 48) }}<div class="squad-title"><h3><a href="{{ url_for('squad_detail', sid=s.id) }}">{{ s.name }}</a></h3><p>{{ s.category }} &middot; {{ s.members }} member{{ '' if s.members == 1 else 's' }}</p></div></div>
+      {% if s.description %}<p class="desc">{{ s.description[:140] }}{% if s.description|length > 140 %}...{% endif %}</p>{% endif %}
+      <div class="btn-row">
+        {% if s.requested %}<span class="pill-static muted-pill">Request sent</span>{{ post_button(url_for('squad_cancel', sid=s.id), 'Cancel', 'button-outline', next='/squads') }}
+        {% else %}<form method="POST" action="{{ url_for('squad_join', sid=s.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="from" value="list"><button class="button" type="submit">Request to join</button></form>{% endif %}
+      </div>
+    </article>
+    {% else %}<p class="muted-note">No public squads to show{% if q or cat %} for that search{% endif %}.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

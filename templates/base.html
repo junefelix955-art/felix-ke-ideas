@@ -95,7 +95,7 @@
   function poll(){
     if(document.hidden) return;
     fetch(url,{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(r){return r.ok?r.json():null;})
-      .then(function(d){if(d&&typeof d.unread==="number") set(d.unread);}).catch(function(){});
+      .then(function(d){if(d&&typeof d.unread==="number") set(d.unread);if(d&&typeof d.unread_msgs==="number") document.querySelectorAll('[data-unread-msgs]').forEach(function(e){e.textContent=d.unread_msgs;e.hidden=(d.unread_msgs===0);});}).catch(function(){});
   }
   setInterval(poll,30000);
   document.addEventListener("visibilitychange",function(){if(!document.hidden) poll();});

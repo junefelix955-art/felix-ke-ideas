@@ -1,5 +1,5 @@
 {% extends "app_base.html" %}
-{% from "_macros.html" import avatar %}
+{% from "_macros.html" import avatar, post_button %}
 {% block title %}{{ u.full_name or u.username }} | Felix KE Ideas{% endblock %}
 {% block app %}
 <section class="card profile-card">
@@ -28,8 +28,17 @@
     <a class="button" href="{{ url_for('settings') }}">Edit profile</a>
     <p class="field-hint">Members only see the details you leave switched on in Settings.</p>
     {% else %}
-    <button type="button" class="button" disabled title="Buddies arrive in Phase 3">Add buddy</button>
-    <button type="button" class="button button-outline" disabled title="Private messages arrive in Phase 5">Message</button>
+    {% set nxt = url_for('profile', username=u.username) %}
+    {% if rel == 'friends' %}
+      {{ post_button(url_for('dm_start', other=u.id), 'Message') }}
+      {{ post_button(url_for('buddy_remove', other=u.id), 'Remove buddy', 'button-outline', next=nxt, confirm='Remove this buddy?') }}
+    {% elif rel == 'sent' %}
+      <span class="pill-static muted-pill">Request sent</span>{{ post_button(url_for('buddy_respond', fid=rel_id, action='cancel'), 'Cancel request', 'button-outline', next=nxt) }}
+    {% elif rel == 'received' %}
+      {{ post_button(url_for('buddy_respond', fid=rel_id, action='accept'), 'Accept request', next=nxt) }}{{ post_button(url_for('buddy_respond', fid=rel_id, action='reject'), 'Decline', 'button-outline', next=nxt) }}
+    {% else %}
+      {{ post_button(url_for('buddy_request', other=u.id), 'Add buddy', next=nxt) }}
+    {% endif %}
     {% endif %}
   </div>
 </section>

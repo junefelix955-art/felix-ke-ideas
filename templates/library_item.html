@@ -1,0 +1,19 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import post_button %}
+{% block title %}{{ r.title }} | Library{% endblock %}
+{% block app %}
+<p class="crumbs"><a href="{{ url_for('library') }}">&larr; Library</a></p>
+<article class="card">
+  <h1 class="q-title">{{ r.title }}</h1>
+  <p class="chips"><span class="badge">{{ r.doc_type }}</span>{% if r.year %}<span class="badge">{{ r.year }}{% if r.semester %} &middot; Semester {{ r.semester }}{% endif %}</span>{% endif %}<span class="badge">{{ r.kind|upper }} &middot; {{ r.size_h }}</span></p>
+  {% if r.description %}<p>{{ r.description }}</p>{% endif %}
+  <dl class="facts">{% if r.university %}<dt>University</dt><dd>{{ r.university }}</dd>{% endif %}{% if r.course %}<dt>Course</dt><dd>{{ r.course }}</dd>{% endif %}{% if r.subject %}<dt>Subject</dt><dd>{{ r.subject }}</dd>{% endif %}
+    <dt>Shared by</dt><dd><a href="{{ url_for('profile', username=r.username) }}">{{ r.username }}</a>, {{ r.created_at|ago }}</dd><dt>Downloads</dt><dd>{{ r.downloads }}</dd></dl>
+  <div class="btn-row"><a class="button" href="{{ url_for('library_file', rid=r.id, download=1) }}">Download</a>
+    {% if r.user_id == session.user_id %}{{ post_button(url_for('library_delete', rid=r.id), 'Delete', 'button-outline', confirm='Delete this resource?') }}
+    {% else %}<form method="POST" action="{{ url_for('report') }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="resource"><input type="hidden" name="target_id" value="{{ r.id }}"><input type="hidden" name="next" value="{{ url_for('library_item', rid=r.id) }}"><input type="hidden" name="reason" value="Reported from library"><button class="button button-outline" type="submit">Report</button></form>{% endif %}</div>
+</article>
+{% if r.kind == 'pdf' %}<section class="card"><h2>Preview</h2><iframe class="preview" src="{{ url_for('library_file', rid=r.id) }}" title="Preview of {{ r.title }}"></iframe></section>
+{% elif r.kind in ('png','jpeg','webp') %}<section class="card"><h2>Preview</h2><img class="preview-img" src="{{ url_for('library_file', rid=r.id) }}" alt="{{ r.title }}"></section>
+{% else %}<p class="muted-note">Preview is available for PDFs and images. Download this file to open it.</p>{% endif %}
+{% endblock %}

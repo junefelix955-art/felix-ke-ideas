@@ -4,6 +4,8 @@ import csv
 import io
 import hmac
 import secrets
+import time
+from types import SimpleNamespace
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -18,6 +20,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 import psycopg.errors
 
+import features
+from features import common as fc
+
 load_dotenv()
 
 DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
@@ -31,7 +36,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=not DEBUG,  # HTTPS only in production
     PERMANENT_SESSION_LIFETIME=timedelta(hours=2),
-    MAX_CONTENT_LENGTH=3 * 1024 * 1024,  # Phase 7 (library) will raise this for PDF/Word uploads
+    MAX_CONTENT_LENGTH=8 * 1024 * 1024,  # biggest upload is a library document (6 MB) plus form overhead
 )
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
@@ -129,6 +134,7 @@ def initialize_database():
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
         connection.execute("CREATE INDEX IF NOT EXISTS notifications_user_idx "
                            "ON notifications (user_id, is_read, id DESC)")
+        features.init_schema(connection)  # Phases 3-10 tables (all additive)
         connection.commit()
     finally:
         connection.close()
@@ -475,7 +481,8 @@ def signout():
 
 
 CATEGORIES = ["Maths", "Python", "Data", "Web", "Other"]
-REPORT_TABLES = {"post": "posts", "comment": "comments", "chat": "chat_messages"}
+REPORT_TABLES = {"post": "posts", "comment": "comments", "chat": "chat_messages",
+                 "resource": "resources", "msg": "thread_messages"}
 
 
 @app.route("/community")
@@ -680,6 +687,8 @@ def admin_reports():
             "SELECT r.id, r.kind, r.target_id, r.reason, ru.username, r.created_at, "
             "CASE r.kind WHEN 'post' THEN (SELECT title || ': ' || body FROM posts WHERE id = r.target_id) "
             "WHEN 'comment' THEN (SELECT body FROM comments WHERE id = r.target_id) "
+            "WHEN 'resource' THEN (SELECT title || ': ' || description FROM resources WHERE id = r.target_id) "
+            "WHEN 'msg' THEN (SELECT body FROM thread_messages WHERE id = r.target_id) "
             "ELSE (SELECT body FROM chat_messages WHERE id = r.target_id) END "
             "FROM reports r JOIN users ru ON ru.id = r.reporter_id WHERE NOT r.resolved ORDER BY r.id DESC").fetchall()
     finally:
@@ -777,13 +786,27 @@ def profile_complete(u):
 
 
 def user_stats(c, uid):
-    r = c.execute(
-        "SELECT (SELECT COUNT(*) FROM posts WHERE user_id = %s), "
-        "(SELECT COUNT(*) FROM comments WHERE user_id = %s), "
-        "(SELECT COUNT(*) FROM chat_messages WHERE user_id = %s), "
-        "(SELECT COALESCE(MAX(score), 0) FROM game_scores WHERE user_id = %s)", (uid, uid, uid, uid)).fetchone()
-    # buddies and squads arrive in Phases 3 and 4; keep the keys so templates do not change later.
-    return {"posts": r[0], "replies": r[1], "messages": r[2], "best_score": r[3], "buddies": 0, "squads": 0}
+    q = [
+        "(SELECT COUNT(*) FROM posts WHERE user_id = %s)",
+        "(SELECT COUNT(*) FROM comments WHERE user_id = %s)",
+        "(SELECT COUNT(*) FROM chat_messages WHERE user_id = %s) + "
+        "(SELECT COUNT(*) FROM thread_messages WHERE user_id = %s AND kind <> 'system')",
+        "(SELECT COALESCE(MAX(score), 0) FROM game_scores WHERE user_id = %s)",
+        "(SELECT COUNT(*) FROM friendships WHERE status = 'accepted' AND (user_a = %s OR user_b = %s))",
+        "(SELECT COUNT(*) FROM squad_members WHERE user_id = %s)",
+        "(SELECT COUNT(*) FROM question_replies WHERE user_id = %s AND is_answer)",
+        "(SELECT COUNT(*) FROM resources WHERE user_id = %s)",
+        "(SELECT COUNT(*) FROM math_solves WHERE user_id = %s)",
+        "(SELECT COALESCE(SUM(amount), 0) FROM points WHERE user_id = %s)",
+        "(SELECT COUNT(*) FROM squad_members m JOIN squads s ON s.id = m.squad_id "
+        "WHERE m.user_id = %s AND COALESCE(s.created_by, 0) <> %s)",
+        "(SELECT COUNT(*) FROM squads WHERE created_by = %s)",
+    ]
+    sql = "SELECT " + ", ".join(q)
+    r = c.execute(sql, (uid,) * sql.count("%s")).fetchone()
+    return {"posts": r[0], "replies": r[1], "messages": r[2], "best_score": r[3], "buddies": r[4], "squads": r[5],
+            "answers": r[6], "resources": r[7], "solves": r[8], "points": r[9], "joined_squads": r[10],
+            "created_squads": r[11], "contributions": r[0] + r[1] + r[6] + r[7]}
 
 
 def notify(conn, user_id, kind, title, body="", link=""):
@@ -812,65 +835,62 @@ def ago(dt):
 
 @app.context_processor
 def notification_badge():
-    """Unread count for the bell in the header (0 when signed out or if the database hiccups)."""
+    """Unread notifications and unread chat messages for the header and menu (0 if signed out or on a database hiccup)."""
     uid = session.get("user_id")
     if not uid:
-        return {"unread_count": 0}
+        return {"unread_count": 0, "unread_msgs": 0}
     try:
         c = get_db_connection()
         try:
             n = c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = %s AND NOT is_read", (uid,)).fetchone()[0]
+            m = fc.unread_messages(c, uid)
         finally:
             c.close()
-        return {"unread_count": n}
+        return {"unread_count": n, "unread_msgs": m}
     except Exception:
-        return {"unread_count": 0}
+        return {"unread_count": 0, "unread_msgs": 0}
 
 
-# ---------- Placeholder pages for phases that are not built yet ----------
-# Replace an entry's view with the real feature when its phase is done (same endpoint name keeps the menu working).
-COMING_SOON = [
-    ("buddies", "/buddies", "Buddies", 3, "Find students, send friend requests and start private chats.", None),
-    ("squads", "/squads", "My Squads", 4, "Create or join academic groups, each with its own chat.", None),
-    ("messages", "/messages", "Messages", 5, "Private conversations with your buddies.", ("Open the group chat", "chat")),
-    ("problem_solver", "/problem-solver", "Problem Solver", 8,
-     "Scan or type a maths problem and get step-by-step solutions.", None),
-    ("library", "/library", "Academic Library", 7, "Share and download notes, past papers and revision material.", None),
-    ("leaderboard", "/leaderboard", "Leaderboard", 9,
-     "Rankings that reward real academic help, not message counts.", ("See the Maths Sprint leaderboard", "play")),
-    ("study_sessions", "/study-sessions", "Study Sessions", 10,
-     "Plan group study sessions with a calendar and reminders.", None),
-]
+@app.before_request
+def track_presence():
+    """Remember when a signed-in member was last active (at most one write a minute) for online indicators."""
+    uid = session.get("user_id")
+    if not uid or request.endpoint in (None, "static"):
+        return
+    now = int(time.time())
+    if now - session.get("_seen", 0) < 60:
+        return
+    session["_seen"] = now
+    try:
+        c = get_db_connection()
+        try:
+            c.execute("UPDATE users SET last_active = NOW() WHERE id = %s", (uid,))
+            c.commit()
+        finally:
+            c.close()
+    except Exception:
+        pass
 
 
-def _register_coming_soon(endpoint, path, title, phase, blurb, alt):
-    @user_required
-    def view():
-        return render_template("coming_soon.html", title=title, phase=phase, blurb=blurb, icon_name=endpoint,
-                               alt=(alt[0], url_for(alt[1])) if alt else None)
-    app.add_url_rule(path, endpoint, view)
-
-
-for _spec in COMING_SOON:
-    _register_coming_soon(*_spec)
+app.jinja_env.globals["is_online"] = fc.is_online
+app.template_filter("site_time")(fc.site_time)
 
 
 # ---------- Getting started checklist ----------
 def onboarding_steps(me, stats):
-    """`available` False = that phase is not built yet, so it shows 'Coming soon' and is left out of the progress bar."""
     return [
         {"title": "Complete your profile", "desc": "Add your name, university and course.",
-         "done": profile_complete(me), "available": True, "url": url_for("settings")},
+         "done": profile_complete(me), "url": url_for("settings")},
         {"title": "Add friends", "desc": "Find students and send buddy requests.",
-         "done": False, "available": False, "url": url_for("buddies")},
+         "done": stats["buddies"] > 0, "url": url_for("buddies", tab="find")},
         {"title": "Join your first squad", "desc": "Discover a public squad that fits your subjects.",
-         "done": False, "available": False, "url": url_for("squads")},
+         "done": stats["joined_squads"] > 0, "url": url_for("squads") + "#discover"},
         {"title": "Create your first squad", "desc": "Start a study group for your course.",
-         "done": False, "available": False, "url": url_for("squads")},
-        {"title": "Send your first message", "desc": "Say hello in the group chat.",
-         "done": stats["messages"] > 0, "available": True, "url": url_for("chat")},
-        {"title": "Try the maths problem scanner", "desc": "Scan a question and see the steps.",
-         "done": False, "available": False, "url": url_for("problem_solver")},
+         "done": stats["created_squads"] > 0, "url": url_for("squad_new")},
+        {"title": "Send your first message", "desc": "Say hello in the group chat or to a buddy.",
+         "done": stats["messages"] > 0, "url": url_for("chat")},
+        {"title": "Try the maths problem scanner", "desc": "Scan or type a question and see the steps.",
+         "done": stats["solves"] > 0, "url": url_for("problem_solver")},
     ]
 
 
@@ -888,14 +908,14 @@ def dashboard():
         stats = user_stats(c, uid)
         notes = c.execute("SELECT id, kind, title, body, link, is_read, created_at FROM notifications "
                           "WHERE user_id = %s ORDER BY id DESC LIMIT 5", (uid,)).fetchall()
+        extras = features.dashboard_extras(c, uid)
     finally:
         c.close()
     steps = onboarding_steps(me, stats)
-    available = [s for s in steps if s["available"]]
-    done = sum(1 for s in available if s["done"])
-    percent = int(100 * done / len(available)) if available else 0
-    return render_template("dashboard.html", me=me, stats=stats, notes=notes, steps=steps,
-                           done=done, total=len(available), percent=percent)
+    done = sum(1 for s in steps if s["done"])
+    percent = round(100 * done / len(steps))
+    return render_template("dashboard.html", me=me, stats=stats, notes=notes, steps=steps, extras=extras,
+                           done=done, total=len(steps), percent=percent)
 
 
 # ---------- Notifications ----------
@@ -951,13 +971,14 @@ def api_notifications():
     c = get_db_connection()
     try:
         unread = c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = %s AND NOT is_read", (uid,)).fetchone()[0]
+        unread_msgs = fc.unread_messages(c, uid)
         rows = []
         if not request.args.get("count"):
             rows = c.execute("SELECT id, kind, title, body, link, is_read, created_at FROM notifications "
                              "WHERE user_id = %s ORDER BY id DESC LIMIT 10", (uid,)).fetchall()
     finally:
         c.close()
-    return jsonify(unread=unread, items=[
+    return jsonify(unread=unread, unread_msgs=unread_msgs, items=[
         {"id": r[0], "kind": r[1], "title": r[2], "body": r[3], "link": r[4], "read": r[5], "time": r[6].isoformat()}
         for r in rows])
 
@@ -1111,10 +1132,28 @@ def profile(username):
     finally:
         c.close()
     own = u["id"] == session["user_id"]
+    rel = "self"
+    if not own:
+        c = get_db_connection()
+        try:
+            f = fc.friendship(c, session["user_id"], u["id"])
+        finally:
+            c.close()
+        rel = "none" if not f else ("friends" if f[1] == "accepted" else ("sent" if f[2] == session["user_id"] else "received"))
+        rel = (rel, f[0] if f else None)
+    else:
+        rel = ("self", None)
     # Owners see everything; other members only see what the owner chose to show.
     show = {k: own or u["show_" + k] for k in ("university", "course", "interests", "bio")}
     tags = [t.strip() for t in u["interests"].split(",") if t.strip()][:12] if show["interests"] else []
-    return render_template("profile.html", u=u, stats=stats, posts=posts, own=own, show=show, tags=tags)
+    return render_template("profile.html", u=u, stats=stats, posts=posts, own=own, show=show, tags=tags,
+                           rel=rel[0], rel_id=rel[1])
+
+
+features.register_all(app, SimpleNamespace(
+    get_db_connection=get_db_connection, validate_csrf=validate_csrf, user_required=user_required, limiter=limiter,
+    notify=notify, load_user=load_user, clean_text=clean_text, safe_next=safe_next, USERNAME_RE=USERNAME_RE,
+    user_stats=user_stats, sniff_image=sniff_image))
 
 
 if __name__ == "__main__":

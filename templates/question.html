@@ -1,0 +1,38 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, post_button %}
+{% block title %}Question | {{ squad.name }}{% endblock %}
+{% block app %}
+<p class="crumbs"><a href="{{ url_for('squad_questions', sid=squad.id) }}">&larr; {{ squad.name }} questions</a></p>
+<article class="card question">
+  <p class="chips"><span class="badge">{{ q.category }}</span><span class="badge">{{ q.difficulty }}</span></p>
+  <h1 class="q-title">{{ q.body }}</h1>
+  <p class="byline">{{ avatar(q, 28) }} <a href="{{ url_for('profile', username=q.username) }}">{{ q.full_name or q.username }}</a> &middot; {{ q.created_at|ago }}</p>
+  {% if q.solution %}<details class="work"><summary>Asker's working</summary><pre class="steps-pre">{{ q.solution }}</pre></details>{% endif %}
+  {% if q.user_id == session.user_id or role in ('admin','moderator') %}{{ post_button(url_for('question_delete', qid=q.id), 'Delete question', 'button-outline', confirm='Delete this question and its replies?') }}{% endif %}
+</article>
+<section class="card" aria-labelledby="h-rep"><h2 id="h-rep">{{ replies|length }} repl{{ 'y' if replies|length == 1 else 'ies' }}</h2>
+  {% for r in replies %}
+  <article class="reply{% if r.is_answer %} is-answer{% endif %}" id="r{{ r.id }}">
+    <div class="byline">{{ avatar(r, 32) }} <a href="{{ url_for('profile', username=r.username) }}">{{ r.full_name or r.username }}</a>
+      {% if r.is_answer %}<span class="badge good">Answer</span>{% endif %}<small>{{ r.created_at|ago }}</small></div>
+    <pre class="steps-pre">{{ r.body }}</pre>
+    <div class="btn-row">
+      {% if r.user_id != session.user_id %}<form method="POST" action="{{ url_for('reply_helpful', rid=r.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button button-outline{% if r.voted %} active{% endif %}" aria-pressed="{{ 'true' if r.voted else 'false' }}">&#128077; Helpful ({{ r.helpful }})</button></form>
+      {% else %}<span class="muted-note">{{ r.helpful }} found this helpful</span>{% endif %}
+      {% if r.user_id == session.user_id or role in ('admin','moderator') %}{{ post_button(url_for('reply_delete', rid=r.id), 'Delete', 'button-outline', confirm='Delete this reply?') }}{% endif %}
+    </div>
+  </article>
+  {% else %}<p class="muted-note">No replies yet. Be the first to help.</p>{% endfor %}
+</section>
+{% if not squad.archived %}
+<section class="card"><h2>Your reply</h2>
+  <form method="POST" action="{{ url_for('question_reply', qid=q.id) }}" data-busy>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="body">Explain your working</label>
+    <textarea id="body" name="body" rows="5" maxlength="2000" required placeholder="Show the steps so others can learn from it"></textarea>
+    {% if q.user_id != session.user_id %}<label class="check"><input type="checkbox" name="is_answer" checked> This is an answer (earns points), not just a comment</label>{% endif %}
+    <button class="button" type="submit">Post reply</button>
+  </form>
+</section>{% endif %}
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, post_button %}
+{% block title %}Buddies | Felix KE Ideas{% endblock %}
+
+{% macro person(u, mode) %}
+{% set nxt = request.full_path.rstrip('?') %}
+<article class="person">
+  <a href="{{ url_for('profile', username=u.username) }}" class="person-pic" aria-label="View {{ u.username }}'s profile">{{ avatar(u, 56, u.online) }}</a>
+  <div class="person-info">
+    <a href="{{ url_for('profile', username=u.username) }}" class="person-name">{{ u.full_name or u.username }}</a>
+    <span>@{{ u.username }}</span>
+    {% if u.course or u.university %}<span>{{ [u.course, u.university]|select|join(' &middot; ')|safe if false else [u.course, u.university]|select|join(' · ') }}</span>{% endif %}
+    <span class="presence {{ 'on' if u.online else '' }}">{% if u.online %}Online now{% elif u.last_active %}Active {{ u.last_active|ago }}{% else %}Offline{% endif %}</span>
+  </div>
+  <div class="person-actions">
+    {% set rel = u.rel %}
+    {% if mode == 'incoming' or (rel and rel.state == 'received') %}
+      {{ post_button(url_for('buddy_respond', fid=rel.id, action='accept'), 'Accept', next=nxt) }}
+      {{ post_button(url_for('buddy_respond', fid=rel.id, action='reject'), 'Decline', 'button-outline', next=nxt) }}
+    {% elif mode == 'outgoing' or (rel and rel.state == 'sent') %}
+      <span class="pill-static muted-pill">Request sent</span>
+      {{ post_button(url_for('buddy_respond', fid=rel.id, action='cancel'), 'Cancel', 'button-outline', next=nxt) }}
+    {% elif rel and rel.state == 'friends' %}
+      {{ post_button(url_for('dm_start', other=u.id), 'Message') }}
+      {% if mode == 'friends' %}{{ post_button(url_for('buddy_remove', other=u.id), 'Remove', 'button-outline', next=nxt, confirm='Remove this buddy?') }}{% endif %}
+    {% else %}
+      {{ post_button(url_for('buddy_request', other=u.id), 'Add buddy', next=nxt) }}
+    {% endif %}
+  </div>
+</article>
+{% endmacro %}
+
+{% block app %}
+<header class="app-head"><h1>Buddies</h1><p>Connect with other students, then chat privately or study together.</p></header>
+<div class="card">
+  <div class="tabs" role="navigation" aria-label="Buddies sections">
+    <a class="tab" href="{{ url_for('buddies') }}"{% if tab == 'friends' %} aria-current="page"{% endif %}>My buddies <span class="count">{{ friends|length }}</span></a>
+    <a class="tab" href="{{ url_for('buddies', tab='requests') }}"{% if tab == 'requests' %} aria-current="page"{% endif %}>Requests {% if incoming %}<span class="pill">{{ incoming|length }}</span>{% endif %}</a>
+    <a class="tab" href="{{ url_for('buddies', tab='find') }}"{% if tab == 'find' %} aria-current="page"{% endif %}>Find students</a>
+  </div>
+
+  {% if tab == 'friends' %}
+    {% if recent %}
+    <h2 class="sub">Recently active</h2>
+    <div class="recent-row">{% for u in recent %}<a href="{{ url_for('profile', username=u.username) }}" class="recent-chip">{{ avatar(u, 44, u.online) }}<span>{{ (u.full_name or u.username).split()[0] }}</span></a>{% endfor %}</div>
+    {% endif %}
+    <h2 class="sub">All buddies</h2>
+    {% for u in friends %}{{ person(u, 'friends') }}{% else %}
+    <div class="empty"><p>No buddies yet. Search for classmates and send a request.</p><a class="button" href="{{ url_for('buddies', tab='find') }}">Find students</a></div>
+    {% endfor %}
+  {% elif tab == 'requests' %}
+    <h2 class="sub">Waiting for your reply</h2>
+    {% for u in incoming %}{{ person(u, 'incoming') }}{% else %}<p class="muted-note">No pending requests.</p>{% endfor %}
+    <h2 class="sub">Requests you sent</h2>
+    {% for u in outgoing %}{{ person(u, 'outgoing') }}{% else %}<p class="muted-note">You have no outgoing requests.</p>{% endfor %}
+  {% else %}
+    <form method="GET" action="{{ url_for('buddies') }}" class="search-row" role="search">
+      <input type="hidden" name="tab" value="find">
+      <label for="q" class="sr-only">Search students</label>
+      <input type="search" id="q" name="q" value="{{ q }}" placeholder="Search by name or username" maxlength="40" autofocus>
+      <button type="submit" class="button">Search</button>
+    </form>
+    {% if q|length >= 2 %}
+      {% for u in results %}{{ person(u, 'find') }}{% else %}<div class="empty"><p>No students match "{{ q }}".</p></div>{% endfor %}
+    {% else %}
+      <h2 class="sub">Newest students</h2>
+      {% for u in newest %}{{ person(u, 'find') }}{% else %}<p class="muted-note">Nobody else has joined yet.</p>{% endfor %}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

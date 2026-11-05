@@ -58,8 +58,27 @@
   <section class="dash-stats" aria-label="Your activity">
     <div class="stat-tile"><strong>{{ stats.posts }}</strong><span>Posts shared</span></div>
     <div class="stat-tile"><strong>{{ stats.replies }}</strong><span>Replies</span></div>
-    <div class="stat-tile"><strong>{{ stats.messages }}</strong><span>Chat messages</span></div>
+    <div class="stat-tile"><strong>{{ stats.points }}</strong><span>Points</span></div>
     <div class="stat-tile"><strong>{{ stats.best_score }}</strong><span>Best Maths Sprint</span></div>
+  </section>
+
+  <section class="card dash-extra" aria-labelledby="h-up">
+    <div class="card-head"><h2 id="h-up">Upcoming sessions</h2><a href="{{ url_for('study_sessions') }}">Calendar</a></div>
+    {% for s in extras.sessions %}<a class="q-row" href="{{ url_for('session_detail', sid=s.id) }}"><span class="badge">{{ s.starts_at|site_time('%d %b') }}</span><span class="q-text">{{ s.topic }}</span><small>{{ s.starts_at|site_time('%H:%M') }} &middot; {{ s.squad }}</small></a>
+    {% else %}<p class="muted-note">No sessions planned yet.</p>{% endfor %}
+  </section>
+
+  <section class="card dash-extra" aria-labelledby="h-sq">
+    <div class="card-head"><h2 id="h-sq">Your squads</h2><a href="{{ url_for('squads') }}">All squads</a></div>
+    {% for s in extras.squads %}<a class="q-row" href="{{ url_for('thread', tid=s.thread_id) }}"><span class="q-text">{{ s.name }}</span>{% if s.unread %}<span class="pill">{{ s.unread }}<span class="sr-only"> unread</span></span>{% endif %}</a>
+    {% else %}<p class="muted-note">You are not in a squad yet.</p><a class="button" href="{{ url_for('squads') }}#discover">Find a squad</a>{% endfor %}
+  </section>
+
+  <section class="card dash-extra" aria-labelledby="h-bd">
+    <div class="card-head"><h2 id="h-bd">Buddies online</h2><a href="{{ url_for('buddies') }}">Buddies</a></div>
+    {% if extras.buddies %}<div class="recent-row">{% for b in extras.buddies %}<a href="{{ url_for('profile', username=b.username) }}" class="recent-chip">{{ avatar(b, 44, True) }}<span>{{ (b.full_name or b.username).split()[0] }}</span></a>{% endfor %}</div>
+    {% else %}<p class="muted-note">None of your buddies are online right now.</p>{% endif %}
+    <p class="points-line"><strong>{{ extras.points }}</strong> points &middot; <strong>{{ extras.week_points }}</strong> this week &middot; <a href="{{ url_for('leaderboard') }}">Leaderboard</a></p>
   </section>
 
   <section class="card dash-start" aria-labelledby="h-start">
@@ -71,15 +90,15 @@
     {% if done == total %}<p class="all-done">You have finished every step available right now. More unlock as new features launch.</p>{% endif %}
     <ol class="steps">
       {% for s in steps %}
-      <li class="step{% if s.done %} done{% endif %}{% if not s.available %} soon{% endif %}">
+      <li class="step{% if s.done %} done{% endif %}">
         <span class="step-mark" aria-hidden="true">{% if s.done %}{{ icon('check') }}{% else %}{{ loop.index }}{% endif %}</span>
         <div class="step-text">
           <strong>{{ s.title }}</strong>
           <span>{{ s.desc }}</span>
         </div>
         {% if s.done %}<span class="step-state">Done<span class="sr-only">: {{ s.title }}</span></span>
-        {% elif s.available %}<a class="step-go" href="{{ s.url }}">Start<span class="sr-only">: {{ s.title }}</span></a>
-        {% else %}<span class="step-state">Coming soon</span>{% endif %}
+        {% else %}<a class="step-go" href="{{ s.url }}">Start<span class="sr-only">: {{ s.title }}</span></a>
+        {% endif %}
       </li>
       {% endfor %}
     </ol>

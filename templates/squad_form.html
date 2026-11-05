@@ -1,0 +1,40 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar %}
+{% block title %}{{ 'Create squad' if mode == 'new' else 'Edit squad' }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>{{ 'Create a squad' if mode == 'new' else 'Edit squad' }}</h1>
+  <p>{{ 'A squad is a group of students working on a subject together.' if mode == 'new' else 'Change the details, privacy and permissions.' }}</p></header>
+<form method="POST" enctype="multipart/form-data" class="card form-card" data-busy>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="name">Squad name</label>
+  <input type="text" id="name" name="name" value="{{ squad.get('name', '') }}" minlength="3" maxlength="60" required placeholder="e.g. Calculus Study Group">
+  <label for="description">Description</label>
+  <textarea id="description" name="description" rows="3" maxlength="500" placeholder="What will this squad work on?">{{ squad.get('description', '') }}</textarea>
+  <label for="category">Academic category</label>
+  <select id="category" name="category">{% for c in categories %}<option{% if c == squad.get('category') %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  <fieldset class="privacy"><legend>Privacy</legend>
+    <label class="check"><input type="radio" name="privacy" value="public"{% if squad.get('privacy', 'public') == 'public' %} checked{% endif %}> <span><strong>Public</strong> &ndash; students can discover the squad and request to join</span></label>
+    <label class="check"><input type="radio" name="privacy" value="private"{% if squad.get('privacy') == 'private' %} checked{% endif %}> <span><strong>Private</strong> &ndash; hidden; people join only by invitation</span></label>
+  </fieldset>
+  <label for="avatar">Squad picture (optional)</label>
+  <input type="file" id="avatar" name="avatar" accept="image/png,image/jpeg,image/webp">
+  <p class="field-hint">PNG, JPEG or WebP, up to 300 KB.</p>
+  {% if mode == 'edit' %}
+    {% if squad.get('avatar_v') %}<label class="check"><input type="checkbox" name="remove_avatar"> Remove the current picture</label>{% endif %}
+    <fieldset class="privacy"><legend>Member permissions</legend>
+      <p class="field-hint">Admins and moderators can always do these. Choose what ordinary members may do.</p>
+      <label class="check"><input type="checkbox" name="allow_member_invites"{% if squad.get('allow_member_invites') %} checked{% endif %}> Members can invite people</label>
+      <label class="check"><input type="checkbox" name="allow_member_quizzes"{% if squad.get('allow_member_quizzes') %} checked{% endif %}> Members can create quizzes</label>
+      <label class="check"><input type="checkbox" name="allow_member_sessions"{% if squad.get('allow_member_sessions') %} checked{% endif %}> Members can organise study sessions</label>
+    </fieldset>
+  {% else %}
+    <fieldset class="privacy"><legend>Invite buddies</legend>
+      {% if buddies %}<div class="invite-grid">{% for b in buddies %}<label class="check"><input type="checkbox" name="invite" value="{{ b.id }}"> {{ avatar(b, 28) }} {{ b.full_name or b.username }}</label>{% endfor %}</div>
+      {% else %}<p class="field-hint">You have no buddies yet. You can invite people from the squad page after creating it.</p>{% endif %}
+    </fieldset>
+  {% endif %}
+  <div class="btn-row"><button type="submit" class="button">{{ 'Create squad' if mode == 'new' else 'Save changes' }}</button>
+    <a class="button button-outline" href="{{ url_for('squads') if mode == 'new' else url_for('squad_detail', sid=squad.id) }}">Cancel</a></div>
+</form>
+{% endblock %}
+{% block scripts %}<script>document.querySelectorAll('form[data-busy]').forEach(function(f){f.addEventListener('submit',function(){var b=f.querySelector('button[type=submit]');if(b){b.disabled=true;b.textContent='Saving...';}});});</script>{% endblock %}

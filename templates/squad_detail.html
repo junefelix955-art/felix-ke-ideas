@@ -1,0 +1,93 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, squad_icon, post_button, icon %}
+{% block title %}{{ squad.name }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<section class="card squad-hero">
+  <div class="squad-hero-top">
+    {{ squad_icon(squad, 88) }}
+    <div>
+      <h1>{{ squad.name }}</h1>
+      <p class="chips"><span class="badge">{{ squad.category }}</span><span class="badge">{{ 'Private' if squad.privacy == 'private' else 'Public' }}</span>{% if squad.archived %}<span class="badge warn">Archived (read-only)</span>{% endif %}<span class="badge">{{ count }} member{{ '' if count == 1 else 's' }}</span></p>
+    </div>
+  </div>
+  {% if squad.description %}<p class="desc-full">{{ squad.description }}</p>{% endif %}
+
+  {% if role %}
+  <div class="btn-row">
+    <a class="button" href="{{ url_for('thread', tid=thread_id) }}">Open chat</a>
+    {% if role == 'admin' %}<a class="button button-outline" href="{{ url_for('squad_edit', sid=squad.id) }}">Edit squad</a>{% endif %}
+    {{ post_button(url_for('squad_leave', sid=squad.id), 'Leave squad', 'button-outline', confirm='Leave this squad?') }}
+  </div>
+  {% elif invited %}
+  <p class="notice">You have been invited to join this squad.</p>
+  <div class="btn-row">{{ post_button(url_for('squad_invitation', sid=squad.id, action='accept'), 'Accept invitation') }}{{ post_button(url_for('squad_invitation', sid=squad.id, action='decline'), 'Decline', 'button-outline') }}</div>
+  {% elif request %}
+  <p class="notice">Your request to join is waiting for an admin.</p>
+  <div class="btn-row">{{ post_button(url_for('squad_cancel', sid=squad.id), 'Cancel request', 'button-outline', next=url_for('squad_detail', sid=squad.id)) }}</div>
+  {% elif not squad.archived %}
+  <div class="btn-row">{{ post_button(url_for('squad_join', sid=squad.id), 'Request to join') }}</div>
+  <p class="field-hint">An admin reviews every request. Members, chat and files are visible after you join.</p>
+  {% endif %}
+</section>
+
+{% if role %}
+<section class="quick-grid" aria-label="Squad tools">
+  <a class="quick" href="{{ url_for('thread', tid=thread_id) }}">{{ icon('messages') }}<strong>Group chat</strong><span>Talk with the squad</span></a>
+  <a class="quick" href="{{ url_for('squad_questions', sid=squad.id) }}">{{ icon('problem_solver') }}<strong>Questions</strong><span>Shared maths problems</span></a>
+  <a class="quick" href="{{ url_for('squad_quizzes', sid=squad.id) }}">{{ icon('leaderboard') }}<strong>Quizzes</strong><span>{{ quiz_count }} published</span></a>
+  <a class="quick" href="{{ url_for('squad_sessions', sid=squad.id) }}">{{ icon('study_sessions') }}<strong>Study sessions</strong><span>{{ session_count }} upcoming</span></a>
+</section>
+
+{% if pending %}
+<section class="card" id="requests" aria-labelledby="h-req"><h2 id="h-req">Join requests <span class="pill">{{ pending|length }}</span></h2>
+  {% for p in pending %}
+  <article class="person">{{ avatar(p, 48) }}<div class="person-info"><a class="person-name" href="{{ url_for('profile', username=p.username) }}">{{ p.full_name or p.username }}</a><span>@{{ p.username }}</span></div>
+    <div class="person-actions">{{ post_button(url_for('squad_review', sid=squad.id, rid=p.req, action='approve'), 'Approve') }}{{ post_button(url_for('squad_review', sid=squad.id, rid=p.req, action='decline'), 'Decline', 'button-outline') }}</div></article>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="card" id="members" aria-labelledby="h-mem"><h2 id="h-mem">Members</h2>
+  {% if can_invite and not squad.archived %}
+  <form method="POST" action="{{ url_for('squad_invite', sid=squad.id) }}" class="search-row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="inv" class="sr-only">Username to invite</label>
+    <input type="text" id="inv" name="username" placeholder="Invite by username" maxlength="30" required pattern="@?[A-Za-z0-9_]+">
+    <button type="submit" class="button">Invite</button>
+  </form>
+  {% endif %}
+  {% for m in members %}
+  <article class="person">
+    <a href="{{ url_for('profile', username=m.username) }}" class="person-pic">{{ avatar(m, 48, m.online) }}</a>
+    <div class="person-info"><a class="person-name" href="{{ url_for('profile', username=m.username) }}">{{ m.full_name or m.username }}</a>
+      <span>@{{ m.username }} <span class="badge{% if m.role != 'member' %} role{% endif %}">{{ m.role|capitalize }}</span></span></div>
+    <div class="person-actions">
+      {% if role == 'admin' and m.id != session.user_id %}
+      <form method="POST" action="{{ url_for('squad_role_change', sid=squad.id, target=m.id) }}" class="inline-form role-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="sr-only" for="r{{ m.id }}">Role for {{ m.username }}</label>
+        <select id="r{{ m.id }}" name="role" onchange="this.form.submit()">{% for r in ('member','moderator','admin') %}<option value="{{ r }}"{% if r == m.role %} selected{% endif %}>{{ r|capitalize }}</option>{% endfor %}</select>
+        <noscript><button class="button" type="submit">Set</button></noscript>
+      </form>
+      {% endif %}
+      {% if m.id != session.user_id and (role == 'admin' or (role == 'moderator' and m.role == 'member')) %}
+      {{ post_button(url_for('squad_remove_member', sid=squad.id, target=m.id), 'Remove', 'button-outline', confirm='Remove this member?') }}
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="card" aria-labelledby="h-q"><h2 id="h-q">Recent questions</h2>
+  {% for q in questions %}<a class="q-row" href="{{ url_for('question_detail', qid=q.id) }}"><span class="badge">{{ q.category }}</span><span class="q-text">{{ q.body[:90] }}{% if q.body|length > 90 %}...{% endif %}</span><small>{{ q.answers }} answer{{ '' if q.answers == 1 else 's' }} &middot; {{ q.user }}</small></a>
+  {% else %}<p class="muted-note">No questions shared yet. Use the + button in the chat to share one.</p>{% endfor %}
+</section>
+
+{% if role == 'admin' %}
+<section class="card danger-zone" aria-labelledby="h-dz"><h2 id="h-dz">Admin tools</h2>
+  <div class="btn-row">{{ post_button(url_for('squad_archive', sid=squad.id), 'Restore squad' if squad.archived else 'Archive squad', 'button-outline', confirm='Change the squad archive status?') }}
+  {{ post_button(url_for('squad_delete', sid=squad.id), 'Delete squad', 'button-danger', confirm='Delete this squad and ALL its messages, questions and quizzes? This cannot be undone.') }}</div>
+  <p class="field-hint">Archiving keeps everything but makes the squad read-only. Deleting removes it for good.</p>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -20,17 +20,34 @@
 <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ ICONS[name]|safe }}</svg>
 {%- endmacro %}
 
-{# Round profile picture, or coloured initials when the member has no picture. u needs id, username, full_name, avatar_v. #}
-{% macro avatar(u, size=48) -%}
+{# Round profile picture, or coloured initials when the member has no picture. u needs id, username, full_name, avatar_v.
+   Pass online=True/False to add a green/grey presence dot. #}
+{% macro avatar(u, size=48, online=None) -%}
 {% set label = u.full_name or u.username %}
 {% set parts = label.split() %}
-<span class="av" style="--s:{{ size }}px;--h:{{ 255 + (u.id * 37) % 90 }}">
+<span class="av-wrap" style="--s:{{ size }}px"><span class="av" style="--s:{{ size }}px;--h:{{ 255 + (u.id * 37) % 90 }}">
 {%- if u.avatar_v -%}
-<img src="{{ url_for('avatar', uid=u.id, v=u.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}" loading="lazy">
+<img src="{{ url_for('avatar', uid=u.id, v=u.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}">
 {%- else -%}
 <span aria-hidden="true">{{ ((parts[0][0] if parts else '?') ~ (parts[1][0] if parts|length > 1 else ''))|upper }}</span>
 {%- endif -%}
+</span>{% if online is not none %}<i class="status {{ 'on' if online else 'off' }}" title="{{ 'Online' if online else 'Offline' }}"></i><span class="sr-only">{{ 'online' if online else 'offline' }}</span>{% endif %}</span>
+{%- endmacro %}
+
+{# Squad picture or a coloured icon with the squad's first letter. s needs id, name, avatar_v. #}
+{% macro squad_icon(s, size=56) -%}
+<span class="av sq" style="--s:{{ size }}px;--h:{{ 200 + (s.id * 53) % 140 }}">
+{%- if s.avatar_v -%}<img src="{{ url_for('squad_avatar', sid=s.id, v=s.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}">
+{%- else -%}<span aria-hidden="true">{{ s.name[:1]|upper }}</span>{%- endif -%}
 </span>
+{%- endmacro %}
+
+{# A small POST button. Use for any action that changes data (CSRF token included). #}
+{% macro post_button(url, label, cls='', next='', confirm='') -%}
+<form method="POST" action="{{ url }}" class="inline-form"{% if confirm %} onsubmit="return confirm('{{ confirm }}');"{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <button type="submit" class="button {{ cls }}">{{ label }}</button>
+</form>
 {%- endmacro %}
 
 {# One notification row. n = (id, kind, title, body, link, is_read, created_at) #}

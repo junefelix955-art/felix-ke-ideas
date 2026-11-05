@@ -1,0 +1,26 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import squad_icon %}
+{% block title %}Questions - {{ squad.name }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head head-row"><div><h1>Questions</h1><p><a href="{{ url_for('squad_detail', sid=squad.id) }}">{{ squad.name }}</a> &middot; maths problems shared by members</p></div>
+  <a class="button button-outline" href="{{ url_for('squad_detail', sid=squad.id) }}">Back to squad</a></header>
+{% if not squad.archived %}
+<section class="card" id="new" aria-labelledby="h-new"><h2 id="h-new">Share a question</h2>
+  <form method="POST" data-busy>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="body">Question</label>
+    <textarea id="body" name="body" rows="3" maxlength="1500" required placeholder="e.g. Find the derivative of x^3 * sin(x)">{{ prefill.get('body', '') }}</textarea>
+    <div class="two-col"><div><label for="category">Category</label><select id="category" name="category">{% for c in categories %}<option{% if c == prefill.get('category') %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label for="difficulty">Difficulty</label><select id="difficulty" name="difficulty">{% for l in levels %}<option{% if l == (prefill.get('difficulty') or 'Medium') %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div></div>
+    <label for="solution">Your working so far (optional)</label>
+    <textarea id="solution" name="solution" rows="2" maxlength="4000">{{ prefill.get('solution', '') }}</textarea>
+    <button class="button" type="submit">Share with squad</button>
+  </form>
+</section>
+{% endif %}
+<section class="card"><h2>All questions</h2>
+  <form method="GET" class="filter-bar"><label class="sr-only" for="cf">Category</label><select id="cf" name="category" onchange="this.form.submit()"><option value="">All categories</option>{% for c in categories %}<option{% if c == cat %} selected{% endif %}>{{ c }}</option>{% endfor %}</select><noscript><button class="button">Filter</button></noscript></form>
+  {% for q in questions %}<a class="q-row" href="{{ url_for('question_detail', qid=q.id) }}"><span class="badge">{{ q.category }}</span><span class="badge">{{ q.difficulty }}</span><span class="q-text">{{ q.body[:110] }}{% if q.body|length > 110 %}...{% endif %}</span><small>{{ q.answers }} answer{{ '' if q.answers == 1 else 's' }} &middot; {{ q.user }} &middot; {{ q.created_at|ago }}</small></a>
+  {% else %}<p class="muted-note">No questions yet.</p>{% endfor %}
+</section>
+{% endblock %}
