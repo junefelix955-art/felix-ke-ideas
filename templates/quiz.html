@@ -1,0 +1,24 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, post_button %}
+{% block title %}{{ z.title }} | Quiz{% endblock %}
+{% block app %}
+<p class="crumbs"><a href="{{ url_for('squad_quizzes', sid=squad.id) }}">&larr; {{ squad.name }} quizzes</a></p>
+<article class="card">
+  <h1 class="q-title">{{ z.title }}</h1>
+  <p class="chips"><span class="badge">{{ n }} questions</span><span class="badge">{{ z.duration }} min</span>{% if z.closes_at %}<span class="badge">Closes {{ z.closes_at|site_time }}</span>{% endif %}{% if not z.published %}<span class="badge warn">Draft</span>{% endif %}</p>
+  {% if z.description %}<p>{{ z.description }}</p>{% endif %}
+  <p class="muted-note">Created by {{ z.creator }}. You can take it once. Correct answers are shown after you submit.</p>
+  <div class="btn-row">
+    {% if at and at.submitted_at %}<a class="button" href="{{ url_for('quiz_results', qid=z.id) }}">See my result ({{ at.score }}/{{ at.max }})</a>
+    {% elif z.published and not squad.archived and not closed %}
+      <form method="POST" action="{{ url_for('quiz_take', qid=z.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button" type="submit">{{ 'Continue quiz' if at else 'Start quiz' }}</button></form>
+    {% elif closed %}<span class="pill-static muted-pill">This quiz is closed</span>{% endif %}
+    {% if not z.published and can_manage %}{{ post_button(url_for('quiz_publish', qid=z.id), 'Publish to squad') }}{% endif %}
+    {% if can_manage %}{{ post_button(url_for('quiz_delete', qid=z.id), 'Delete quiz', 'button-outline', confirm='Delete this quiz and all results?') }}{% endif %}
+  </div>
+</article>
+{% if ranking %}<section class="card"><h2>Results</h2>
+  <ol class="rank-list">{% for r in ranking %}<li class="rank-row{% if r.id == session.user_id %} me{% endif %}"><span class="rank-n {{ 'top' if r.rank <= 3 and not r.late }}">{{ r.rank }}</span>
+    <a class="rank-who" href="{{ url_for('profile', username=r.username) }}">{{ avatar(r, 36) }}<span><strong>{{ r.full_name or r.username }}</strong><small>{{ r.secs // 60 }}m {{ r.secs % 60 }}s{% if r.late %} &middot; late (not ranked){% endif %}</small></span></a>
+    <span class="rank-pts">{{ r.score }}/{{ r.max }}</span></li>{% endfor %}</ol></section>{% endif %}
+{% endblock %}

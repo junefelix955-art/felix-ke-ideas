@@ -1,0 +1,24 @@
+{% extends "app_base.html" %}
+{% block title %}Study Sessions | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>Study Sessions</h1><p>Plan study time with your squads. Times are shown in East Africa Time.</p></header>
+<div class="sess-grid">
+<section class="card" aria-labelledby="h-cal">
+  <div class="card-head"><a class="button button-outline" href="{{ url_for('study_sessions', m=prev.strftime('%Y-%m')) }}" aria-label="Previous month">&larr;</a>
+    <h2 id="h-cal">{{ month_name }}</h2>
+    <a class="button button-outline" href="{{ url_for('study_sessions', m=nxt.strftime('%Y-%m')) }}" aria-label="Next month">&rarr;</a></div>
+  <table class="cal" aria-label="Calendar for {{ month_name }}">
+    <thead><tr>{% for d in ('Mon','Tue','Wed','Thu','Fri','Sat','Sun') %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for w in weeks %}<tr>{% for d in w %}
+      <td{% if d and today.year == first.year and today.month == first.month and today.day == d %} class="today"{% elif not d %} class="blank"{% endif %}>
+        {% if d %}<span class="cal-day">{{ d }}</span>{% for s in by_day.get(d, []) %}<a class="cal-ev{% if s.cancelled %} off{% endif %}" href="{{ url_for('session_detail', sid=s.id) }}" title="{{ s.topic }} ({{ s.squad }})">{{ s.starts_at|site_time('%H:%M') }} {{ s.topic }}</a>{% endfor %}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+</section>
+<section class="card" aria-labelledby="h-up"><h2 id="h-up">Coming up</h2>
+  {% for s in upcoming %}<a class="q-row" href="{{ url_for('session_detail', sid=s.id) }}"><span class="badge">{{ s.starts_at|site_time('%d %b') }}</span><span class="q-text">{{ s.topic }}</span><small>{{ s.starts_at|site_time('%H:%M') }} &middot; {{ s.squad }} &middot; {{ s.going }} going{% if s.mine %} &middot; you: {{ s.mine }}{% endif %}</small></a>
+  {% else %}<p class="muted-note">Nothing scheduled. Open a squad and plan a session.</p>{% endfor %}
+  {% if squads %}<h3 class="sub">Schedule in a squad</h3><div class="chips">{% for s in squads %}<a class="button button-outline" href="{{ url_for('squad_sessions', sid=s[0]) }}">{{ s[1] }}</a>{% endfor %}</div>
+  {% else %}<p class="muted-note">Join a squad to schedule sessions.</p>{% endif %}
+</section>
+</div>
+{% endblock %}

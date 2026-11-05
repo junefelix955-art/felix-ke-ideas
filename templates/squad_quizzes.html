@@ -1,0 +1,11 @@
+{% extends "app_base.html" %}
+{% block title %}Quizzes - {{ squad.name }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head head-row"><div><h1>Quizzes</h1><p><a href="{{ url_for('squad_detail', sid=squad.id) }}">{{ squad.name }}</a> &middot; test each other and climb the leaderboard</p></div>
+  {% if can_make %}<a class="button" href="{{ url_for('quiz_new', sid=squad.id) }}">Create quiz</a>{% endif %}</header>
+<section class="card">
+  {% for z in quizzes %}<a class="q-row" href="{{ url_for('quiz_detail', qid=z.id) }}"><span class="badge{% if not z.published %} warn{% endif %}">{{ 'Draft' if not z.published else ('Done' if z.score is not none else ('Closed' if z.closes_at and z.closes_at < now else 'Open')) }}</span>
+    <span class="q-text">{{ z.title }}</span><small>{{ z.n }} questions &middot; {{ z.duration }} min &middot; {{ z.takers }} taken{% if z.score is not none %} &middot; you: {{ z.score }}/{{ z.max }}{% endif %}</small></a>
+  {% else %}<p class="muted-note">No quizzes yet.{% if can_make %} Create the first one.{% endif %}</p>{% endfor %}
+</section>
+{% endblock %}

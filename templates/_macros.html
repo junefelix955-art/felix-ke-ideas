@@ -1,0 +1,76 @@
+{# Shared building blocks for the student platform pages. Import with:  {% from "_macros.html" import icon, avatar, note_item %} #}
+{% set ICONS = {
+  'dashboard': '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  'buddies': '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  'squads': '<circle cx="12" cy="8" r="3"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><path d="M7 20v-1a5 5 0 0 1 10 0v1M2 20v-1a3 3 0 0 1 3-3M22 20v-1a3 3 0 0 0-3-3"/>',
+  'messages': '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  'problem_solver': '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 12h8"/>',
+  'library': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  'leaderboard': '<path d="M6 20V10M12 20V4M18 20v-7"/>',
+  'study_sessions': '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  'my_profile': '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  'settings': '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  'bell': '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  'camera': '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  'check': '<path d="M20 6 9 17l-5-5"/>'
+} %}
+{% set NOTE_ICONS = {'message': '💬', 'friend': '👋', 'squad': '👥', 'squad_message': '🗨️', 'answer': '🧮', 'session': '📅', 'reply': '💬', 'system': '⭐'} %}
+
+{% macro icon(name) -%}
+<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ ICONS[name]|safe }}</svg>
+{%- endmacro %}
+
+{# Round profile picture, or coloured initials when the member has no picture. u needs id, username, full_name, avatar_v.
+   Pass online=True/False to add a green/grey presence dot. #}
+{% macro avatar(u, size=48, online=None) -%}
+{% set label = u.full_name or u.username %}
+{% set uid = u.user_id or u.id %}
+{% set parts = label.split() %}
+<span class="av-wrap" style="--s:{{ size }}px"><span class="av" style="--s:{{ size }}px;--h:{{ 255 + (uid * 37) % 90 }}">
+{%- if u.avatar_v -%}
+<img src="{{ url_for('avatar', uid=uid, v=u.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}">
+{%- else -%}
+<span aria-hidden="true">{{ ((parts[0][0] if parts else '?') ~ (parts[1][0] if parts|length > 1 else ''))|upper }}</span>
+{%- endif -%}
+</span>{% if online is not none %}<i class="status {{ 'on' if online else 'off' }}" title="{{ 'Online' if online else 'Offline' }}"></i><span class="sr-only">{{ 'online' if online else 'offline' }}</span>{% endif %}</span>
+{%- endmacro %}
+
+{# Squad picture or a coloured icon with the squad's first letter. s needs id, name, avatar_v. #}
+{% macro squad_icon(s, size=56) -%}
+<span class="av sq" style="--s:{{ size }}px;--h:{{ 200 + (s.id * 53) % 140 }}">
+{%- if s.avatar_v -%}<img src="{{ url_for('squad_avatar', sid=s.id, v=s.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}">
+{%- else -%}<span aria-hidden="true">{{ s.name[:1]|upper }}</span>{%- endif -%}
+</span>
+{%- endmacro %}
+
+{# A small POST button. Use for any action that changes data (CSRF token included). #}
+{% macro post_button(url, label, cls='', next='', confirm='') -%}
+<form method="POST" action="{{ url }}" class="inline-form"{% if confirm %} onsubmit="return confirm('{{ confirm }}');"{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <button type="submit" class="button {{ cls }}">{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{# One notification row. n = (id, kind, title, body, link, is_read, created_at) #}
+{% macro note_item(n, next='/notifications') %}
+<li class="note{% if not n[5] %} unread{% endif %}">
+  <span class="note-ico" aria-hidden="true">{{ NOTE_ICONS.get(n[1], '🔔') }}</span>
+  <div class="note-body">
+    <form method="POST" action="{{ url_for('notification_read', nid=n[0]) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="go" value="1">
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="note-title">{{ n[2] }}</button>
+    </form>
+    {% if n[3] %}<p>{{ n[3] }}</p>{% endif %}
+    <small>{{ n[6]|ago }}{% if not n[5] %} &middot; <span class="sr-only">unread</span><span aria-hidden="true">new</span>{% endif %}</small>
+  </div>
+  {% if not n[5] %}
+  <form method="POST" action="{{ url_for('notification_read', nid=n[0]) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="note-mark">Mark read</button>
+  </form>
+  {% endif %}
+</li>
+{% endmacro %}

@@ -1,0 +1,56 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import icon, post_button %}
+{% block title %}Math Problem Solver | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>Math Problem Solver</h1><p>Type a problem, or scan it with your camera or a photo. You get the working, not just the answer.</p></header>
+<div class="solver-grid">
+<section class="card" aria-labelledby="h-in">
+  <h2 id="h-in">Your problem</h2>
+  <form method="POST" action="{{ url_for('problem_solver') }}" id="solve-form" data-busy>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="problem">Type or scan a problem</label>
+    <textarea id="problem" name="problem" rows="3" maxlength="300" required placeholder="e.g. x^2 - 5x + 6 = 0">{{ text }}</textarea>
+    <div class="btn-row">
+      <button type="submit" class="button">Solve</button>
+      <label class="button button-outline scan-btn" id="scan-label">{{ icon('camera') }} Scan / upload photo
+        <input type="file" id="scan" accept="image/*" capture="environment" hidden></label>
+    </div>
+    <p class="field-hint" id="scan-status" role="status" aria-live="polite" hidden></p>
+    <img id="scan-preview" class="scan-preview" alt="Scanned problem preview" hidden>
+    <p class="field-hint">Scanning reads the text in your photo (it loads a text-recognition tool the first time). Always check the recognised text before pressing Solve. Printed text works best.</p>
+  </form>
+  <details class="examples"><summary>What can it solve?</summary>
+    <ul class="plain-list"><li><code>3(2+4)^2 - 5</code> &ndash; arithmetic</li><li><code>2x + 3 = 11</code>, <code>x^2 - 5x + 6 = 0</code>, <code>x^3 - 6x^2 + 11x - 6 = 0</code></li>
+      <li><code>x + y = 5; x - y = 1</code> &ndash; two equations</li><li><code>derivative of x^3 sin(x)</code>, <code>integrate 3x^2 + 2x</code></li><li><code>mean of 4, 8, 15, 16</code>, <code>standard deviation of 2,4,4,5</code></li></ul>
+    <p class="field-hint">Use ^ for powers, * or implicit multiplication, sqrt(x), sin, cos, tan, ln, exp.</p></details>
+</section>
+
+{% if result %}
+<section class="card result" aria-labelledby="h-res" id="result">
+  <h2 id="h-res">Solution <span class="badge">{{ result.category }}</span></h2>
+  <p class="given"><strong>Problem:</strong> {{ result.question }}</p>
+  <ol class="steps">{% for s in result.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  <p class="final"><strong>Answer:</strong> <span>{{ result.answer }}</span></p>
+  <div class="btn-row">
+    {{ post_button(url_for('solve_save', sid=result.id), 'Remove from saved' if result.get('saved') else 'Save', 'button-outline') }}
+    {{ post_button(url_for('solve_delete', sid=result.id), 'Delete', 'button-outline', confirm='Remove this from your history?') }}
+  </div>
+  {% if squads %}
+  <form method="POST" action="{{ url_for('solve_share', sid=result.id) }}" class="share-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="squad_id">Share with a squad</label>
+    <div class="search-row"><select id="squad_id" name="squad_id">{% for s in squads %}<option value="{{ s[0] }}">{{ s[1] }}</option>{% endfor %}</select><button class="button" type="submit">Share</button></div>
+  </form>{% endif %}
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="h-hist">
+  <h2 id="h-hist">History</h2>
+  <div class="tabs"><a class="tab" href="{{ url_for('problem_solver') }}"{% if tab == 'recent' %} aria-current="page"{% endif %}>Recent</a><a class="tab" href="{{ url_for('problem_solver', tab='saved') }}"{% if tab == 'saved' %} aria-current="page"{% endif %}>Saved</a></div>
+  {% for s in hist %}<a class="q-row" href="{{ url_for('solve_view', sid=s.id) }}"><span class="badge">{{ s.category }}</span><span class="q-text">{{ s.question[:70] }}</span><small>{{ s.answer[:60] }} &middot; {{ s.created_at|ago }}</small></a>
+  {% else %}<p class="muted-note">{{ 'Nothing saved yet.' if tab == 'saved' else 'Your solved problems will appear here.' }}</p>{% endfor %}
+</section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='solver.js') }}"></script>
+<script>document.querySelectorAll('form[data-busy]').forEach(function(f){f.addEventListener('submit',function(){var b=f.querySelector('button[type=submit]');if(b){b.disabled=true;b.textContent='Solving...';}});});</script>{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "app_base.html" %}
+{% block title %}{{ z.title }} | Quiz{% endblock %}
+{% block app %}
+<header class="app-head head-row"><div><h1>{{ z.title }}</h1><p>Answer every question, then submit.</p></div><div class="timer" id="timer" role="timer" aria-live="off" data-left="{{ left }}">--:--</div></header>
+<form method="POST" action="{{ url_for('quiz_submit', qid=z.id) }}" id="quiz" class="form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for q in questions %}
+  <fieldset class="card"><legend>{{ loop.index }}. {{ q.prompt }}</legend>
+    {% if q.kind == 'mcq' %}{% for o in q.options %}<label class="check"><input type="radio" name="a_{{ q.id }}" value="{{ o }}"> {{ o }}</label>{% endfor %}
+    {% elif q.kind == 'tf' %}<label class="check"><input type="radio" name="a_{{ q.id }}" value="True"> True</label><label class="check"><input type="radio" name="a_{{ q.id }}" value="False"> False</label>
+    {% else %}<label class="sr-only" for="a{{ q.id }}">Your answer</label><input type="text" id="a{{ q.id }}" name="a_{{ q.id }}" maxlength="300" autocomplete="off">{% endif %}
+  </fieldset>{% endfor %}
+  <button class="button" type="submit" id="submit-quiz">Submit answers</button>
+</form>
+{% endblock %}
+{% block scripts %}<script>
+(function(){
+  var t=document.getElementById('timer'),left=parseInt(t.dataset.left,10),f=document.getElementById('quiz');
+  function show(){var m=Math.floor(left/60),s=left%60;t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;t.classList.toggle('low',left<60);}
+  show();
+  var iv=setInterval(function(){left--;if(left<=0){clearInterval(iv);left=0;show();f.submit();return;}show();},1000);
+  f.addEventListener('submit',function(){var b=document.getElementById('submit-quiz');b.disabled=true;});
+  window.addEventListener('beforeunload',function(e){if(left>0&&!f.dataset.done){e.preventDefault();e.returnValue='';}});
+  f.addEventListener('submit',function(){f.dataset.done='1';});
+})();
+</script>{% endblock %}

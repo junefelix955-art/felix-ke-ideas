@@ -1,0 +1,15 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ title }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<section class="card soon-card">
+  <span class="soon-ico">{{ icon(icon_name) }}</span>
+  <p class="pill-static">Coming in Phase {{ phase }}</p>
+  <h1>{{ title }}</h1>
+  <p>{{ blurb }}</p>
+  <div class="btn-row center">
+    <a class="button" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+    {% if alt %}<a class="button button-outline" href="{{ alt[1] }}">{{ alt[0] }}</a>{% endif %}
+  </div>
+</section>
+{% endblock %}

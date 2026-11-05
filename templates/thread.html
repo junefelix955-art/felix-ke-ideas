@@ -1,0 +1,41 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, squad_icon %}
+{% block title %}{{ (squad.name if squad else (other.full_name or other.username)) }} | Messages{% endblock %}
+{% block app %}
+<section class="card chat" id="chat" data-tid="{{ tid }}" data-last="{{ last_id }}" data-kind="{{ t.kind }}" data-me="{{ session.user_id }}" data-csrf="{{ csrf_token() }}"
+  data-poll="{{ url_for('thread_poll', tid=tid) }}" data-send="{{ url_for('thread_send', tid=tid) }}"
+  data-base="{{ url_for('thread', tid=tid) }}" data-report="{{ url_for('report') }}">
+  <header class="chat-head">
+    <a class="back" href="{{ url_for('messages') }}" aria-label="Back to messages">&larr;</a>
+    {% if squad %}
+      {{ squad_icon(squad, 40) }}
+      <div class="chat-title"><a href="{{ url_for('squad_detail', sid=squad.id) }}"><strong>{{ squad.name }}</strong></a><h1 class="sr-only">{{ squad.name }}</h1>
+        <small>{{ members }} members &middot; <i class="status on inline"></i>{{ online }} online</small></div>
+    {% else %}
+      <a href="{{ url_for('profile', username=other.username) }}">{{ avatar(other, 40, other.online) }}</a>
+      <div class="chat-title"><a href="{{ url_for('profile', username=other.username) }}"><strong>{{ other.full_name or other.username }}</strong></a><h1 class="sr-only">Chat with {{ other.full_name or other.username }}</h1>
+        <small id="presence">{% if other.online %}Online now{% elif other.last_active %}Active {{ other.last_active|ago }}{% else %}Offline{% endif %}</small></div>
+    {% endif %}
+  </header>
+  <div class="chat-log" id="log" role="log" aria-live="polite" aria-label="Messages">
+    {% for m in messages %}{% include "_message.html" %}{% else %}<p class="muted-note center" id="empty">No messages yet. Say hello!</p>{% endfor %}
+    <span id="end"></span>
+  </div>
+  {% if can_send %}
+  <div class="reply-bar" id="reply-bar" hidden><span id="reply-text"></span><button type="button" id="reply-cancel" aria-label="Cancel reply">&times;</button></div>
+  <form class="composer" id="composer" method="POST" action="{{ url_for('thread_send', tid=tid) }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="reply_to" id="reply_to" value="">
+    <label class="attach" title="Attach a file (PDF, Word, PowerPoint, image, code; max 5 MB)"><span class="sr-only">Attach a file</span>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m21 11-9.2 9.2a5 5 0 0 1-7-7L14 3.9a3.3 3.3 0 0 1 4.7 4.7l-9.2 9.2a1.7 1.7 0 0 1-2.4-2.4l8.5-8.5"/></svg>
+      <input type="file" name="file" id="file" hidden accept=".pdf,.doc,.docx,.pptx,.png,.jpg,.jpeg,.webp,.txt,.md,.py,.js,.java,.c,.cpp,.csv,.json,.html,.css,.sql,.r"></label>
+    {% if squad %}<a class="attach" href="{{ url_for('squad_questions', sid=squad.id) }}#new" title="Share a maths question with the squad"><span class="sr-only">Share a question</span><b aria-hidden="true">+</b></a>{% endif %}
+    <label for="body" class="sr-only">Message</label>
+    <textarea id="body" name="body" rows="1" maxlength="1500" placeholder="Write a message..." autocomplete="off"></textarea>
+    <button type="submit" class="button" id="send">Send</button>
+  </form>
+  <p class="file-name" id="file-name" hidden></p>
+  {% else %}<p class="notice center">{{ 'This squad is archived, so the chat is read-only.' if t.archived else 'You are no longer buddies, so you can read this chat but not send messages.' }}</p>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='chat.js') }}"></script>{% endblock %}

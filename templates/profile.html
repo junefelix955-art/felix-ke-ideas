@@ -1,0 +1,59 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, post_button %}
+{% block title %}{{ u.full_name or u.username }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<section class="card profile-card">
+  <div class="profile-hero">
+    {{ avatar(u, 120) }}
+    <div>
+      <h1>{{ u.full_name or u.username }}</h1>
+      <p class="profile-handle">@{{ u.username }} &middot; Joined {{ u.created_at.strftime('%b %Y') }}</p>
+      {% if (show.course and u.course) or (show.university and u.university) %}
+      <p class="profile-line">{% if show.course and u.course %}{{ u.course }}{% endif %}{% if show.course and u.course and show.university and u.university %} &middot; {% endif %}{% if show.university and u.university %}{{ u.university }}{% endif %}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if show.bio and u.bio %}<p class="profile-bio">{{ u.bio }}</p>{% endif %}
+  {% if tags %}<p class="tags" aria-label="Academic interests">{% for t in tags %}<span>{{ t }}</span>{% endfor %}</p>{% endif %}
+
+  <div class="dash-stats profile-stats">
+    <div class="stat-tile"><strong>{{ stats.buddies }}</strong><span>Buddies</span></div>
+    <div class="stat-tile"><strong>{{ stats.squads }}</strong><span>Squads</span></div>
+    <div class="stat-tile"><strong>{{ stats.posts + stats.replies }}</strong><span>Contributions</span></div>
+  </div>
+
+  <div class="btn-row">
+    {% if own %}
+    <a class="button" href="{{ url_for('settings') }}">Edit profile</a>
+    <p class="field-hint">Members only see the details you leave switched on in Settings.</p>
+    {% else %}
+    {% set nxt = url_for('profile', username=u.username) %}
+    {% if rel == 'friends' %}
+      {{ post_button(url_for('dm_start', other=u.id), 'Message') }}
+      {{ post_button(url_for('buddy_remove', other=u.id), 'Remove buddy', 'button-outline', next=nxt, confirm='Remove this buddy?') }}
+    {% elif rel == 'sent' %}
+      <span class="pill-static muted-pill">Request sent</span>{{ post_button(url_for('buddy_respond', fid=rel_id, action='cancel'), 'Cancel request', 'button-outline', next=nxt) }}
+    {% elif rel == 'received' %}
+      {{ post_button(url_for('buddy_respond', fid=rel_id, action='accept'), 'Accept request', next=nxt) }}{{ post_button(url_for('buddy_respond', fid=rel_id, action='reject'), 'Decline', 'button-outline', next=nxt) }}
+    {% else %}
+      {{ post_button(url_for('buddy_request', other=u.id), 'Add buddy', next=nxt) }}
+    {% endif %}
+    {% endif %}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="h-posts">
+  <h2 id="h-posts">Recent contributions</h2>
+  {% if posts %}
+  <ul class="plain-list">
+    {% for p in posts %}
+    <li><a href="{{ url_for('community') }}#post-{{ p[0] }}">{{ p[1] }}</a> <span class="badge">{{ p[2] }}</span> <small>{{ p[3].strftime('%d %b %Y') }}</small></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty"><p>{{ 'You have not' if own else (u.full_name or u.username) ~ ' has not' }} shared anything in the community yet.</p>
+  {% if own %}<a class="button" href="{{ url_for('community') }}">Share something</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

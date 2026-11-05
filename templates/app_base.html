@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+{% set NAV = [
+  ('dashboard', 'Dashboard'), ('buddies', 'Buddies'), ('squads', 'My Squads'), ('messages', 'Messages'),
+  ('problem_solver', 'Problem Solver'), ('library', 'Academic Library'), ('leaderboard', 'Leaderboard'),
+  ('study_sessions', 'Study Sessions'), ('my_profile', 'My Profile'), ('settings', 'Settings')
+] %}
+<div class="app">
+  <nav class="app-nav" aria-label="Student platform">
+    {% for ep, label in NAV %}
+    {% set active = request.endpoint == ep or (ep == 'my_profile' and request.endpoint == 'profile' and request.view_args.get('username') == current_user) %}
+    <a href="{{ url_for(ep) }}"{% if active %} aria-current="page"{% endif %}>{{ icon(ep) }}<span>{{ label }}</span>{% if ep == 'messages' %}<span class="nav-badge side" data-unread-msgs{% if not unread_msgs %} hidden{% endif %}>{{ unread_msgs }}</span>{% endif %}</a>
+    {% endfor %}
+  </nav>
+  <div class="app-main">
+    {% block app %}{% endblock %}
+  </div>
+  {% block fab %}{% endblock %}
+</div>
+{% endblock %}

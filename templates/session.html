@@ -1,0 +1,30 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, post_button %}
+{% block title %}{{ d.topic }} | Study session{% endblock %}
+{% block app %}
+<p class="crumbs"><a href="{{ url_for('squad_sessions', sid=d.squad_id) }}">&larr; {{ d.squad }} sessions</a></p>
+<article class="card">
+  <h1 class="q-title">{{ d.topic }}</h1>
+  <p class="chips"><span class="badge">{{ d.squad }}</span>{% if d.cancelled %}<span class="badge warn">Cancelled</span>{% elif past %}<span class="badge">Finished</span>{% endif %}</p>
+  <dl class="facts"><dt>When</dt><dd>{{ d.starts_at|site_time('%A %d %B %Y, %H:%M') }} to {{ d.ends_at|site_time('%H:%M') }} ({{ d.duration }} min)</dd>
+    {% if d.location %}<dt>Where</dt><dd>{% if d.link %}<a href="{{ d.link }}" target="_blank" rel="noopener noreferrer">{{ d.link }}</a>{% else %}{{ d.location }}{% endif %}</dd>{% endif %}
+    <dt>Organiser</dt><dd>{{ d.creator }}</dd></dl>
+  {% if d.description %}<p>{{ d.description }}</p>{% endif %}
+  {% if not d.cancelled and not past and not archived %}
+  <div class="btn-row" role="group" aria-label="Your reply">
+    {% for s, label in (('going','I am going'),('maybe','Maybe'),('no','Cannot make it')) %}
+    <form method="POST" action="{{ url_for('session_rsvp', sid=d.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="{{ s }}">
+      <button class="button{% if d.mine != s %} button-outline{% endif %}" type="submit" aria-pressed="{{ 'true' if d.mine == s else 'false' }}">{{ label }}</button></form>{% endfor %}
+  </div>{% endif %}
+</article>
+<section class="card"><h2>Who is coming ({{ d.going }} going)</h2>
+  {% for p in people %}<div class="person slim">{{ avatar(p, 36) }}<div class="person-info"><a class="person-name" href="{{ url_for('profile', username=p.username) }}">{{ p.full_name or p.username }}</a></div><span class="badge{% if p.status == 'going' %} good{% endif %}">{{ {'going':'Going','maybe':'Maybe','no':'Cannot make it'}[p.status] }}</span></div>
+  {% else %}<p class="muted-note">No replies yet.</p>{% endfor %}
+</section>
+{% if can_manage and not archived %}
+<section class="card"><h2>Manage</h2>
+  <form method="POST" action="{{ url_for('session_reschedule', sid=d.id) }}" class="search-row"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="sr-only" for="ns">New start time</label><input type="datetime-local" id="ns" name="starts_at" required><button class="button" type="submit">Reschedule</button></form>
+  {% if not d.cancelled %}{{ post_button(url_for('session_cancel', sid=d.id), 'Cancel session', 'button-outline', confirm='Cancel this session and tell everyone?') }}{% endif %}
+</section>{% endif %}
+{% endblock %}

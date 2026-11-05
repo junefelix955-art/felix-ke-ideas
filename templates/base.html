@@ -1,0 +1,107 @@
+{%- from "_macros.html" import icon -%}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#070d1a">
+    <title>{% block title %}Felix KE Ideas | Digital Solutions & Portfolio{% endblock %}</title>
+    <meta name="description" content="{% block description %}Felix KE Ideas: web development, programming, data analysis and digital solutions by Felix Atandi.{% endblock %}">
+    <meta property="og:title" content="{{ self.title() }}">
+    <meta property="og:type" content="website">
+    {% block robots %}{% endblock %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css', v='5') }}">
+    <noscript><style>.nav-links{display:flex!important}.nav-toggle{display:none!important}</style></noscript>
+    <script>try{var t=localStorage.getItem('theme');document.documentElement.dataset.theme=(t==='light')?'light':'dark';}catch(e){}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+    <nav class="navbar" aria-label="Main">
+        <a href="{{ url_for('index') }}" class="brand">Felix <span>KE Ideas.</span></a>
+        <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">&#9776; Menu</button>
+        <div id="nav-links" class="nav-links">
+            <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Home</a>
+            <a href="{{ url_for('community') }}" {% if request.endpoint == 'community' %}aria-current="page"{% endif %}>Community</a>
+            <a href="{{ url_for('chat') }}" {% if request.endpoint == 'chat' %}aria-current="page"{% endif %}>Chat</a>
+            <a href="{{ url_for('play') }}" {% if request.endpoint == 'play' %}aria-current="page"{% endif %}>Play</a>
+            <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}aria-current="page"{% endif %}>About</a>
+            {% if current_user %}
+            <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+            <a href="{{ url_for('notifications') }}" class="nav-bell" {% if request.endpoint == 'notifications' %}aria-current="page"{% endif %}>{{ icon('bell') }}<span>Alerts</span><span class="nav-badge" data-unread{% if not unread_count %} hidden{% endif %}>{{ unread_count }}</span></a>
+            {% endif %}
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch light or dark theme">Theme</button>
+            {% if current_user %}
+            <form action="{{ url_for('signout') }}" method="POST" class="nav-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="theme-toggle">Sign out ({{ current_user }})</button></form>
+            {% else %}
+            <a href="{{ url_for('signin') }}">Sign in</a>
+            <a href="{{ url_for('register') }}" class="nav-contact">Join free</a>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-wrap" aria-live="polite">
+      {% for category, message in messages %}
+        <p class="flash {{ category }}">{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main id="main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+    <a href="{{ url_for('index') }}" class="footer-brand">Felix KE Ideas.</a>
+    <p>Turning ideas into digital solutions.</p>
+    <div class="footer-links">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('community') }}">Community</a>
+        <a href="{{ url_for('chat') }}">Chat</a>
+        <a href="{{ url_for('play') }}">Play</a>
+        <a href="{{ url_for('about') }}">About</a>
+        <a href="{{ url_for('contact') }}">Contact</a>
+        <a href="{{ url_for('privacy') }}">Privacy &amp; Terms</a>
+    </div>
+    <p class="copyright">&copy; 2026 Felix KE Ideas. All rights reserved.</p>
+    <p class="footer-tech">Built with Python, Flask, HTML, CSS and PostgreSQL.</p>
+</footer>
+<script>
+(function(){
+  var nb=document.getElementById('nav-toggle'),nl=document.getElementById('nav-links'),tb=document.getElementById('theme-toggle'),root=document.documentElement;
+  if(nb&&nl){nb.addEventListener('click',function(){nb.setAttribute('aria-expanded',nl.classList.toggle('open'));});
+    nl.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('a'))nl.classList.remove('open');});}
+  function label(){if(tb)tb.textContent=root.dataset.theme==='dark'?'\u2600 Light':'\u263E Dark';}
+  if(tb){label();tb.addEventListener('click',function(){root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('theme',root.dataset.theme);}catch(e){}label();});}
+})();
+</script>
+{% if current_user %}
+<script>
+(function(){
+  /* Keep the bell's unread count fresh while the tab is open (every 30 seconds). */
+  var url="{{ url_for('api_notifications') }}?count=1";
+  function set(n){
+    document.querySelectorAll('[data-unread]').forEach(function(e){e.textContent=n;e.hidden=(n===0);});
+    var r=document.getElementById('note-refresh'); if(r&&n>parseInt(r.dataset.seen,10)) r.hidden=false;
+  }
+  function poll(){
+    if(document.hidden) return;
+    fetch(url,{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(r){return r.ok?r.json():null;})
+      .then(function(d){if(d&&typeof d.unread==="number") set(d.unread);if(d&&typeof d.unread_msgs==="number") document.querySelectorAll('[data-unread-msgs]').forEach(function(e){e.textContent=d.unread_msgs;e.hidden=(d.unread_msgs===0);});}).catch(function(){});
+  }
+  setInterval(poll,30000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden) poll();});
+})();
+</script>
+{% endif %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

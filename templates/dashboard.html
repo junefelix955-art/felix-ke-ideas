@@ -1,0 +1,110 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import icon, avatar, note_item %}
+{% block title %}Dashboard | Felix KE Ideas{% endblock %}
+{% block description %}Your student dashboard: profile, notifications and getting started checklist.{% endblock %}
+{% block app %}
+{% set first = (me.full_name or me.username).split()[0] %}
+<header class="app-head">
+  <h1>Hi, {{ first }} <span aria-hidden="true">👋</span></h1>
+  <p>Here is what is happening on your learning dashboard.</p>
+</header>
+
+<div class="dash-grid">
+  <section class="card dash-profile" aria-labelledby="h-profile">
+    <h2 id="h-profile" class="sr-only">Your profile</h2>
+    <div class="profile-top">
+      {{ avatar(me, 84) }}
+      <div>
+        <p class="profile-name">{{ me.full_name or me.username }}</p>
+        <p class="profile-handle">@{{ me.username }}</p>
+      </div>
+    </div>
+    {% if me.university or me.course %}
+    <p class="profile-line">{{ [me.course, me.university]|select|join(' · ') }}</p>
+    {% else %}
+    <p class="profile-line muted-note">Add your university and course so classmates can find you.</p>
+    {% endif %}
+    <div class="btn-row">
+      <a class="button" href="{{ url_for('settings') }}">Edit profile</a>
+      <a class="button button-outline" href="{{ url_for('my_profile') }}">View profile</a>
+    </div>
+  </section>
+
+  <section class="card dash-notes" aria-labelledby="h-notes">
+    <div class="card-head">
+      <h2 id="h-notes">Notifications <span class="pill" data-unread{% if not unread_count %} hidden{% endif %}>{{ unread_count }}</span></h2>
+      <a href="{{ url_for('notifications') }}">View all</a>
+    </div>
+    <button type="button" id="note-refresh" class="note-refresh" data-seen="{{ unread_count }}" hidden onclick="location.reload()">New notifications. Tap to refresh.</button>
+    {% if notes %}
+    <ul class="note-list">
+      {% for n in notes %}{{ note_item(n, '/dashboard') }}{% endfor %}
+    </ul>
+    {% if unread_count %}
+    <form method="POST" action="{{ url_for('notifications_read_all') }}" class="note-all">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="/dashboard">
+      <button type="submit" class="button button-outline">Mark all as read</button>
+    </form>
+    {% endif %}
+    {% else %}
+    <div class="empty">
+      <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><path d="M48 26a16 16 0 0 0-32 0c0 18-8 23-8 23h48s-8-5-8-23" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M36 55a5 5 0 0 1-8 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+      <p>You are all caught up. New messages, friend requests and replies will show up here.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="dash-stats" aria-label="Your activity">
+    <div class="stat-tile"><strong>{{ stats.posts }}</strong><span>Posts shared</span></div>
+    <div class="stat-tile"><strong>{{ stats.replies }}</strong><span>Replies</span></div>
+    <div class="stat-tile"><strong>{{ stats.points }}</strong><span>Points</span></div>
+    <div class="stat-tile"><strong>{{ stats.best_score }}</strong><span>Best Maths Sprint</span></div>
+  </section>
+
+  <section class="card dash-extra" aria-labelledby="h-up">
+    <div class="card-head"><h2 id="h-up">Upcoming sessions</h2><a href="{{ url_for('study_sessions') }}">Calendar</a></div>
+    {% for s in extras.sessions %}<a class="q-row" href="{{ url_for('session_detail', sid=s.id) }}"><span class="badge">{{ s.starts_at|site_time('%d %b') }}</span><span class="q-text">{{ s.topic }}</span><small>{{ s.starts_at|site_time('%H:%M') }} &middot; {{ s.squad }}</small></a>
+    {% else %}<p class="muted-note">No sessions planned yet.</p>{% endfor %}
+  </section>
+
+  <section class="card dash-extra" aria-labelledby="h-sq">
+    <div class="card-head"><h2 id="h-sq">Your squads</h2><a href="{{ url_for('squads') }}">All squads</a></div>
+    {% for s in extras.squads %}<a class="q-row" href="{{ url_for('thread', tid=s.thread_id) }}"><span class="q-text">{{ s.name }}</span>{% if s.unread %}<span class="pill">{{ s.unread }}<span class="sr-only"> unread</span></span>{% endif %}</a>
+    {% else %}<p class="muted-note">You are not in a squad yet.</p><a class="button" href="{{ url_for('squads') }}#discover">Find a squad</a>{% endfor %}
+  </section>
+
+  <section class="card dash-extra" aria-labelledby="h-bd">
+    <div class="card-head"><h2 id="h-bd">Buddies online</h2><a href="{{ url_for('buddies') }}">Buddies</a></div>
+    {% if extras.buddies %}<div class="recent-row">{% for b in extras.buddies %}<a href="{{ url_for('profile', username=b.username) }}" class="recent-chip">{{ avatar(b, 44, True) }}<span>{{ (b.full_name or b.username).split()[0] }}</span></a>{% endfor %}</div>
+    {% else %}<p class="muted-note">None of your buddies are online right now.</p>{% endif %}
+    <p class="points-line"><strong>{{ extras.points }}</strong> points &middot; <strong>{{ extras.week_points }}</strong> this week &middot; <a href="{{ url_for('leaderboard') }}">Leaderboard</a></p>
+  </section>
+
+  <section class="card dash-start" aria-labelledby="h-start">
+    <div class="card-head">
+      <h2 id="h-start">Getting started</h2>
+      <span class="progress-label">{{ done }} of {{ total }} done</span>
+    </div>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}" aria-label="Getting started progress"><span style="--p:{{ percent }}%"></span></div>
+    {% if done == total %}<p class="all-done">You have finished every step available right now. More unlock as new features launch.</p>{% endif %}
+    <ol class="steps">
+      {% for s in steps %}
+      <li class="step{% if s.done %} done{% endif %}">
+        <span class="step-mark" aria-hidden="true">{% if s.done %}{{ icon('check') }}{% else %}{{ loop.index }}{% endif %}</span>
+        <div class="step-text">
+          <strong>{{ s.title }}</strong>
+          <span>{{ s.desc }}</span>
+        </div>
+        {% if s.done %}<span class="step-state">Done<span class="sr-only">: {{ s.title }}</span></span>
+        {% else %}<a class="step-go" href="{{ s.url }}">Start<span class="sr-only">: {{ s.title }}</span></a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+</div>
+{% endblock %}
+{% block fab %}
+<a class="fab" href="{{ url_for('problem_solver') }}" aria-label="Scan a math problem">{{ icon('camera') }}<span>Scan a Math Problem</span></a>
+{% endblock %}

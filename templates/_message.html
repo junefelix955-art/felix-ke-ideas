@@ -1,0 +1,40 @@
+{# One chat message. Needs m, tid, kind ('dm'|'squad'), reactions (allowed emoji). Everything is auto-escaped. #}
+{% from "_macros.html" import avatar %}
+{% if m.kind == 'system' %}
+<div class="msg-system" data-id="{{ m.id }}">{{ m.body }}</div>
+{% else %}
+<div class="msg{% if m.mine %} mine{% endif %}" data-id="{{ m.id }}" id="m{{ m.id }}">
+  {% if not m.mine and kind == 'squad' %}<a href="{{ url_for('profile', username=m.username) }}" class="msg-av" aria-label="{{ m.full_name or m.username }}'s profile">{{ avatar({'id': m.user_id, 'username': m.username, 'full_name': m.full_name, 'avatar_v': m.avatar_v}, 32) }}</a>{% endif %}
+  <div class="bubble-wrap">
+    {% if not m.mine and kind == 'squad' %}<a class="msg-name" href="{{ url_for('profile', username=m.username) }}">{{ m.full_name or m.username }}</a>{% endif %}
+    <div class="bubble{% if m.deleted %} deleted{% endif %}">
+      {% if m.deleted %}<em>This message was deleted</em>
+      {% else %}
+        {% if m.reply %}<a class="reply-quote" href="#m{{ m.reply.id }}"><strong>{{ m.reply.username }}</strong> {{ m.reply.text }}</a>{% endif %}
+        {% if m.kind == 'file' and m.file %}
+          {% if m.file.image %}<a href="{{ url_for('chat_file', fid=m.file.id) }}" target="_blank" rel="noopener"><img class="chat-img" src="{{ url_for('chat_file', fid=m.file.id) }}" alt="{{ m.file.filename }}" loading="lazy"></a>{% endif %}
+          <a class="file-chip" href="{{ url_for('chat_file', fid=m.file.id, download=1) }}"><span class="file-kind">{{ m.file.kind|upper }}</span><span>{{ m.file.filename }}<small>{{ m.file.size }}</small></span></a>
+        {% elif m.kind == 'file' %}<em>File no longer available</em>{% endif %}
+        {% if m.kind == 'question' %}
+          {% if m.question %}<a class="q-card" href="{{ url_for('question_detail', qid=m.question.id) }}">
+            <span class="q-card-top"><span class="badge">{{ m.question.category }}</span><span class="badge">{{ m.question.difficulty }}</span></span>
+            <strong>{{ m.question.body[:160] }}{% if m.question.body|length > 160 %}...{% endif %}</strong>
+            <small>Asked by {{ m.question.user }} &middot; {{ m.question.answers }} answer{{ '' if m.question.answers == 1 else 's' }} &middot; Tap to solve</small></a>
+          {% else %}<em>This question was removed</em>{% endif %}
+        {% endif %}
+        {% if m.body %}<p class="msg-text">{{ m.body }}</p>{% endif %}
+      {% endif %}
+      <span class="msg-meta">{{ m.created_at|site_time('%H:%M') }}{% if m.mine and not m.deleted %} <span class="tick {{ m.status }}" data-tick title="{{ m.status|capitalize }}">{{ '✓✓' if m.status in ('delivered','seen') else '✓' }}</span>{% if kind == 'squad' and m.seen_by %}<span class="seen-by" data-seenby> Seen by {{ m.seen_by }}</span>{% endif %}{% endif %}</span>
+    </div>
+    <div class="reacts" data-reacts>{% for r in m.reactions %}<button type="button" class="react{% if r.mine %} mine{% endif %}" data-emoji="{{ r.emoji }}">{{ r.emoji }} {{ r.count }}</button>{% endfor %}</div>
+    {% if not m.deleted %}
+    <div class="msg-tools">
+      <button type="button" class="tool" data-act="reply" data-id="{{ m.id }}" data-who="{{ m.username }}" data-text="{{ (m.body or '[' ~ m.kind ~ ']')[:60] }}">Reply</button>
+      <span class="react-pick">{% for e in reactions %}<button type="button" class="tool emoji" data-act="react" data-emoji="{{ e }}" aria-label="React {{ e }}">{{ e }}</button>{% endfor %}</span>
+      {% if m.mine or kind == 'squad' %}<button type="button" class="tool" data-act="delete" data-own="{{ 1 if m.mine else 0 }}">Delete</button>{% endif %}
+      {% if not m.mine %}<button type="button" class="tool" data-act="report">Report</button>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,23 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar, squad_icon, post_button %}
+{% block title %}Messages | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>Messages</h1><p>Private chats with buddies and your squad group chats.</p></header>
+<div class="msg-layout">
+<section class="card" aria-labelledby="h-conv"><h2 id="h-conv">Conversations</h2>
+  {% for i in items %}
+  <a class="convo{% if i.unread %} unread{% endif %}" href="{{ url_for('thread', tid=i.id) }}">
+    {% if i.squad %}{{ squad_icon(i.squad, 48) }}{% else %}{{ avatar(i.other, 48, i.other.online) }}{% endif %}
+    <span class="convo-body"><strong>{{ i.name }}{% if i.squad %} <small class="badge">Squad</small>{% endif %}</strong>
+      <span class="convo-last">{% if i.last %}{% if i.squad %}{{ i.last.who }}: {% endif %}{{ i.last.text }}{% else %}No messages yet{% endif %}</span></span>
+    <span class="convo-side">{% if i.last %}<small>{{ i.last.time|ago }}</small>{% endif %}{% if i.unread %}<span class="pill">{{ i.unread }}<span class="sr-only"> unread</span></span>{% endif %}</span>
+  </a>
+  {% else %}<div class="empty"><p>No conversations yet. Message a buddy, or join a squad to chat with its members.</p><a class="button" href="{{ url_for('buddies', tab='find') }}">Find buddies</a></div>{% endfor %}
+</section>
+<section class="card" aria-labelledby="h-new"><h2 id="h-new">Start a private chat</h2>
+  {% for b in buddies %}<div class="person slim">{{ avatar(b, 40, b.online) }}<div class="person-info"><span class="person-name">{{ b.full_name or b.username }}</span><span>@{{ b.username }}</span></div>
+    <div class="person-actions">{{ post_button(url_for('dm_start', other=b.id), 'Message') }}</div></div>
+  {% else %}<p class="muted-note">Only buddies can message each other. Add a buddy first.</p>{% endfor %}
+</section>
+</div>
+{% endblock %}

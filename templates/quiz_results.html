@@ -1,0 +1,11 @@
+{% extends "app_base.html" %}
+{% block title %}Result - {{ z.title }}{% endblock %}
+{% block app %}
+<p class="crumbs"><a href="{{ url_for('quiz_detail', qid=z.id) }}">&larr; {{ z.title }}</a></p>
+<section class="card result"><h1>Your score: {{ at.score }} / {{ at.max }}</h1>{% if at.late %}<p class="notice">Submitted after the time limit, so it is not ranked and earned no points.</p>{% endif %}</section>
+{% for q in questions %}
+<section class="card review {{ 'right' if q.ok else 'wrong' }}"><h2>{{ loop.index }}. {{ q.prompt }}</h2>
+  <p><strong>{{ 'Correct' if q.ok else 'Not quite' }}.</strong> Your answer: {{ q.given or '(blank)' }}</p>
+  {% if not q.ok %}<p>Correct answer: <strong>{{ q.answer }}</strong></p>{% endif %}
+  {% if q.explanation %}<p class="muted-note">{{ q.explanation }}</p>{% endif %}</section>{% endfor %}
+{% endblock %}

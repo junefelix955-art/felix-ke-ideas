@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Community | Felix KE Ideas{% endblock %}
+{% block description %}Share what you know, like and reply to posts, and learn from other members.{% endblock %}
+{% block content %}
+<div class="community">
+  <div class="section-heading"><h1>Community</h1><p>Share a tip, a solved problem or a lesson. Like it, reply to it, learn from it.</p></div>
+
+  <form class="filter-bar" method="GET" action="{{ url_for('community') }}">
+    <label for="q" class="sr-only">Search posts</label>
+    <input type="search" id="q" name="q" value="{{ q }}" placeholder="Search posts..." maxlength="60">
+    <label for="cat" class="sr-only">Topic</label>
+    <select id="cat" name="category"><option value="">All topics</option>{% for c in categories %}<option value="{{ c }}"{% if c == active %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+    <button type="submit" class="button">Filter</button>
+  </form>
+
+  {% if current_user %}
+  <form class="post-form" method="POST" action="{{ url_for('new_post') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" maxlength="120" placeholder="e.g. How I solved quadratic equations faster" required>
+    <label for="category">Topic</label>
+    <select id="category" name="category">{% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+    <label for="body">What do you want to share?</label>
+    <textarea id="body" name="body" rows="5" maxlength="3000" required></textarea>
+    <button type="submit" class="button">Post to community</button>
+  </form>
+  {% else %}
+  <div class="post-cta"><p>Join to post, like and reply.</p><a href="{{ url_for('register') }}" class="button">Join free</a> <a href="{{ url_for('signin') }}" class="button button-outline">Sign in</a></div>
+  {% endif %}
+
+  {% for p in posts %}
+  {% set cs = comments.get(p[0], []) %}
+  <article class="post" id="post-{{ p[0] }}">
+    <h2>{{ p[1] }}</h2>
+    <p class="post-meta"><span class="badge">{{ p[8] }}</span> by <strong>{{ p[3] }}</strong> &middot; {{ p[4].strftime('%d %b %Y') }}</p>
+    <div class="post-body">{{ p[2] }}</div>
+    <div class="post-actions">
+      {% if current_user %}
+      <form method="POST" action="{{ url_for('like_post', post_id=p[0]) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="like-btn{% if p[7] %} liked{% endif %}" aria-pressed="{{ 'true' if p[7] else 'false' }}" aria-label="Like this post">&#9829; {{ p[6] }}</button>
+      </form>
+      {% else %}
+      <a class="like-btn" href="{{ url_for('signin') }}" aria-label="Sign in to like">&#9829; {{ p[6] }}</a>
+      {% endif %}
+      {% if is_admin or (user_id and user_id == p[5]) %}
+      <form method="POST" action="{{ url_for('delete_post', post_id=p[0]) }}" onsubmit="return confirm('Delete this post?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="admin-delete-button">Delete</button>
+      </form>
+      {% endif %}
+      {% if current_user and user_id != p[5] %}<details class="report-box"><summary>Report</summary>
+        <form method="POST" action="{{ url_for('report') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="post"><input type="hidden" name="target_id" value="{{ p[0] }}"><input type="hidden" name="next" value="/community#post-{{ p[0] }}">
+        <select name="reason" aria-label="Reason"><option>Spam</option><option>Offensive or abusive</option><option>Wrong or misleading</option><option>Other</option></select><button type="submit" class="button">Send</button></form></details>{% endif %}
+    </div>
+    <details class="replies"{% if cs|length <= 2 and cs %} open{% endif %}>
+      <summary>{{ cs|length }} {{ 'reply' if cs|length == 1 else 'replies' }}</summary>
+      {% for c in cs %}
+      <div class="comment" id="comment-{{ c[0] }}">
+        <p class="post-meta"><strong>{{ c[2] }}</strong> &middot; {{ c[4].strftime('%d %b, %H:%M') }}</p>
+        <div class="post-body">{{ c[3] }}</div>
+        {% if is_admin or (user_id and user_id == c[5]) %}
+        <form method="POST" action="{{ url_for('delete_comment', comment_id=c[0]) }}" onsubmit="return confirm('Delete this reply?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="link-danger">Delete</button>
+        </form>
+        {% endif %}
+        {% if current_user and user_id != c[5] %}<details class="report-box"><summary>Report</summary>
+        <form method="POST" action="{{ url_for('report') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="comment"><input type="hidden" name="target_id" value="{{ c[0] }}"><input type="hidden" name="next" value="/community#post-{{ p[0] }}">
+        <select name="reason" aria-label="Reason"><option>Spam</option><option>Offensive or abusive</option><option>Wrong or misleading</option><option>Other</option></select><button type="submit" class="button">Send</button></form></details>{% endif %}
+      </div>
+      {% endfor %}
+      {% if current_user %}
+      <form class="reply-form" method="POST" action="{{ url_for('add_comment', post_id=p[0]) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="reply-{{ p[0] }}" class="sr-only">Your reply</label>
+        <textarea id="reply-{{ p[0] }}" name="body" rows="2" maxlength="1000" placeholder="Write a reply..." required></textarea>
+        <button type="submit" class="button">Reply</button>
+      </form>
+      {% else %}<p class="post-meta"><a href="{{ url_for('signin') }}">Sign in</a> to reply.</p>{% endif %}
+    </details>
+  </article>
+  {% else %}
+  <p class="admin-empty">{% if q or active %}No posts match your search.{% else %}No posts yet. Be the first to share something.{% endif %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

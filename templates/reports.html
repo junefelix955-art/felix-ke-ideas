@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Moderation | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Moderation</h1><p>Reported posts, replies and chat messages waiting for review.</p></div><a href="{{ url_for('admin') }}" class="admin-button admin-button-light">Back to dashboard</a></div>
+  <div class="admin-panel">
+  {% if reports %}
+  <div class="admin-table-wrapper"><table class="admin-table">
+    <thead><tr><th>Type</th><th>Reported content</th><th>Reason</th><th>By</th><th>Actions</th></tr></thead><tbody>
+    {% for r in reports %}
+    <tr><td>{{ r[1] }} #{{ r[2] }}</td>
+      <td class="admin-message-text">{{ (r[6] or '(already deleted)')[:300] }}</td>
+      <td>{{ r[3] }}</td><td>{{ r[4] }}<br><small>{{ r[5].strftime('%d %b, %H:%M') }}</small></td>
+      <td class="admin-actions">
+        <form method="POST" action="{{ url_for('resolve_report', report_id=r[0], action='remove') }}" onsubmit="return confirm('Delete this content permanently?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="admin-delete-button" type="submit">Remove</button></form>
+        <form method="POST" action="{{ url_for('resolve_report', report_id=r[0], action='dismiss') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="admin-button admin-button-light" type="submit">Dismiss</button></form>
+      </td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="admin-empty">Nothing to review. All clear.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

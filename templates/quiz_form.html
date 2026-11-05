@@ -1,0 +1,43 @@
+{% extends "app_base.html" %}
+{% block title %}Create quiz | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>Create a quiz</h1><p>For <a href="{{ url_for('squad_detail', sid=squad.id) }}">{{ squad.name }}</a>. Members get 2 points per correct answer (daily limit applies).</p></header>
+<form method="POST" class="form-card" id="quiz-form" data-busy>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="card">
+    <label for="title">Title</label><input type="text" id="title" name="title" value="{{ f.get('title','') }}" maxlength="100" required>
+    <label for="description">Description</label><textarea id="description" name="description" rows="2" maxlength="500">{{ f.get('description','') }}</textarea>
+    <div class="two-col"><div><label for="duration">Time limit (minutes)</label><input type="number" id="duration" name="duration" min="1" max="180" value="{{ f.get('duration','10') }}"></div>
+    <div><label for="closes_at">Closes at (optional)</label><input type="datetime-local" id="closes_at" name="closes_at" value="{{ f.get('closes_at','') }}"></div></div>
+  </section>
+  <div id="questions">
+  {% set kinds, prompts, optss, answers, expls = f.getlist('q_kind'), f.getlist('q_prompt'), f.getlist('q_opts'), f.getlist('q_answer'), f.getlist('q_expl') %}
+  {% for i in range(nq) %}
+  <fieldset class="card qblock"><legend>Question {{ i + 1 }}</legend>
+    <label>Type<select name="q_kind">{% for v, l in (('mcq','Multiple choice'),('tf','True / False'),('short','Short answer')) %}<option value="{{ v }}"{% if i < kinds|length and kinds[i] == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+    <label>Question<textarea name="q_prompt" rows="2" maxlength="600">{{ prompts[i] if i < prompts|length else '' }}</textarea></label>
+    <label>Options (multiple choice only, one per line)<textarea name="q_opts" rows="3" maxlength="900">{{ optss[i] if i < optss|length else '' }}</textarea></label>
+    <label>Correct answer<input type="text" name="q_answer" maxlength="300" value="{{ answers[i] if i < answers|length else '' }}"></label>
+    <p class="field-hint">Multiple choice: the option NUMBER (1, 2, 3...). True/False: True or False. Short answer: the exact answer (numbers match numerically).</p>
+    <label>Explanation shown after the quiz (optional)<input type="text" name="q_expl" maxlength="600" value="{{ expls[i] if i < expls|length else '' }}"></label>
+  </fieldset>
+  {% endfor %}
+  </div>
+  <div class="btn-row"><button type="button" class="button button-outline" id="add-q" data-max="{{ max_q }}">Add another question</button></div>
+  <label class="check"><input type="checkbox" name="publish" checked> Publish now and tell the squad (untick to save a draft)</label>
+  <div class="btn-row"><button type="submit" class="button">Save quiz</button><a class="button button-outline" href="{{ url_for('squad_quizzes', sid=squad.id) }}">Cancel</a></div>
+</form>
+{% endblock %}
+{% block scripts %}<script>
+(function(){
+  var box=document.getElementById('questions'),add=document.getElementById('add-q');
+  function renumber(){box.querySelectorAll('.qblock legend').forEach(function(l,i){l.textContent='Question '+(i+1);});}
+  add.addEventListener('click',function(){
+    var blocks=box.querySelectorAll('.qblock'); if(blocks.length>=parseInt(add.dataset.max,10)){add.disabled=true;return;}
+    var c=blocks[blocks.length-1].cloneNode(true);
+    c.querySelectorAll('textarea,input').forEach(function(e){e.value='';}); c.querySelector('select').selectedIndex=0;
+    box.appendChild(c); renumber(); if(box.querySelectorAll('.qblock').length>=parseInt(add.dataset.max,10)) add.disabled=true;
+  });
+  document.querySelectorAll('form[data-busy]').forEach(function(f){f.addEventListener('submit',function(){var b=f.querySelector('button[type=submit]');if(b){b.disabled=true;b.textContent='Saving...';}});});
+})();
+</script>{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "app_base.html" %}
+{% block title %}Study sessions - {{ squad.name }} | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>Study sessions</h1><p><a href="{{ url_for('squad_detail', sid=squad.id) }}">{{ squad.name }}</a></p></header>
+{% if can_make %}
+<section class="card" aria-labelledby="h-new"><h2 id="h-new">Schedule a session</h2>
+  <form method="POST" data-busy><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="topic">Topic</label><input type="text" id="topic" name="topic" maxlength="100" required value="{{ f.get('topic','') }}" placeholder="e.g. Integration revision">
+    <div class="two-col"><div><label for="starts_at">Starts (East Africa Time)</label><input type="datetime-local" id="starts_at" name="starts_at" required value="{{ f.get('starts_at','') }}"></div>
+    <div><label for="duration">Length (minutes)</label><input type="number" id="duration" name="duration" min="10" max="480" value="{{ f.get('duration','60') }}"></div></div>
+    <label for="location">Where? (room, or a meeting link)</label><input type="text" id="location" name="location" maxlength="150" value="{{ f.get('location','') }}" placeholder="Library room 3, or https://meet.google.com/...">
+    <label for="description">Notes (optional)</label><textarea id="description" name="description" rows="2" maxlength="500">{{ f.get('description','') }}</textarea>
+    <button class="button" type="submit">Schedule and invite squad</button></form>
+</section>{% endif %}
+<section class="card"><h2>Upcoming</h2>
+  {% for s in upcoming %}<a class="q-row" href="{{ url_for('session_detail', sid=s.id) }}"><span class="badge{% if s.cancelled %} warn{% endif %}">{{ 'Cancelled' if s.cancelled else s.starts_at|site_time('%d %b') }}</span><span class="q-text">{{ s.topic }}</span><small>{{ s.starts_at|site_time('%H:%M') }} &middot; {{ s.going }} going</small></a>
+  {% else %}<p class="muted-note">No upcoming sessions.</p>{% endfor %}
+</section>
+{% if past %}<section class="card"><h2>Past</h2>{% for s in past %}<a class="q-row" href="{{ url_for('session_detail', sid=s.id) }}"><span class="badge">{{ s.starts_at|site_time('%d %b') }}</span><span class="q-text">{{ s.topic }}</span><small>{{ s.going }} went</small></a>{% endfor %}</section>{% endif %}
+{% endblock %}

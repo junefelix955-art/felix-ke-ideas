@@ -1,0 +1,28 @@
+{% extends "app_base.html" %}
+{% from "_macros.html" import avatar %}
+{% block title %}Leaderboard | Felix KE Ideas{% endblock %}
+{% block app %}
+<header class="app-head"><h1>Leaderboard</h1><p>Points reward real contributions: helpful answers, shared resources, quizzes and questions. Chatting earns nothing, and every reward has a daily limit.</p></header>
+<section class="card you-rank" aria-label="Your ranking">
+  <div class="stat-tile"><span>Your points</span><strong>{{ my_points }}</strong></div>
+  <div class="stat-tile"><span>Your rank</span><strong>{{ '#%d' % my_rank if my_rank else '-' }}</strong></div>
+  {% for kind, amt, cnt in breakdown %}<div class="stat-tile small"><span>{{ {'answer':'Answers','helpful':'Helpful votes','resource':'Resources','question':'Questions','quiz':'Quizzes'}.get(kind, kind) }}</span><strong>{{ amt }}</strong></div>{% endfor %}
+</section>
+<section class="card">
+  <form method="GET" class="filter-bar" id="lb-form">
+    <div class="tabs">{% for key, (label, d) in periods.items() %}<a class="tab" href="{{ url_for('leaderboard', period=key, squad=sid or '') }}"{% if key == period %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</div>
+    <input type="hidden" name="period" value="{{ period }}">
+    <label class="sr-only" for="squad">Show</label>
+    <select id="squad" name="squad" onchange="this.form.submit()"><option value="">Everyone</option>{% for s in squads %}<option value="{{ s[0] }}"{% if sid == s[0] %} selected{% endif %}>{{ s[1] }} (squad)</option>{% endfor %}</select>
+    <noscript><button class="button">Show</button></noscript>
+  </form>
+  <ol class="rank-list">
+    {% for r in rows %}
+    <li class="rank-row{% if r.id == session.user_id %} me{% endif %}"><span class="rank-n {{ 'top' if r.rank <= 3 }}">{{ r.rank }}</span>
+      <a class="rank-who" href="{{ url_for('profile', username=r.username) }}">{{ avatar(r, 40, r.online) }}<span><strong>{{ r.full_name or r.username }}</strong><small>@{{ r.username }}</small></span></a>
+      <span class="rank-pts">{{ r.points }} <small>pts</small></span></li>
+    {% else %}<li class="muted-note">No points earned {{ 'in this period' if period != 'all' else 'yet' }}. Answer a classmate's question or share a resource to get on the board.</li>{% endfor %}
+  </ol>
+</section>
+<p class="muted-note">Looking for the game scores? <a href="{{ url_for('play') }}">See the Maths Sprint leaderboard</a>.</p>
+{% endblock %}
