@@ -4,7 +4,11 @@
 <div class="msg-system" data-id="{{ m.id }}">{{ m.body }}</div>
 {% else %}
 <div class="msg{% if m.mine %} mine{% endif %}" data-id="{{ m.id }}" id="m{{ m.id }}">
+<<<<<<< HEAD
   {% if not m.mine and kind == 'squad' %}<a href="{{ url_for('profile', username=m.username) }}" class="msg-av" aria-label="{{ m.full_name or m.username }}'s profile">{{ avatar({'id': m.user_id, 'username': m.username, 'full_name': m.full_name, 'avatar_v': m.avatar_v}, 32) }}</a>{% endif %}
+=======
+  {% if not m.mine and kind == 'squad' %}<a href="{{ url_for('profile', username=m.username) }}" class="msg-av">{{ avatar({'id': m.user_id, 'username': m.username, 'full_name': m.full_name, 'avatar_v': m.avatar_v}, 32) }}</a>{% endif %}
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
   <div class="bubble-wrap">
     {% if not m.mine and kind == 'squad' %}<a class="msg-name" href="{{ url_for('profile', username=m.username) }}">{{ m.full_name or m.username }}</a>{% endif %}
     <div class="bubble{% if m.deleted %} deleted{% endif %}">

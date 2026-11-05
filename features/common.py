@@ -111,9 +111,12 @@ def file_response(data, mime, filename, kind, download=False):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     if kind in ("png", "jpeg", "webp"):
         resp.headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self' data:"
+<<<<<<< HEAD
     elif kind == "pdf" and inline:  # the library page previews PDFs in a same-site frame
         resp.headers["X-Frame-Options"] = "SAMEORIGIN"
         resp.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+=======
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
     return resp
 
 

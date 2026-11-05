@@ -9,11 +9,19 @@
     <a class="back" href="{{ url_for('messages') }}" aria-label="Back to messages">&larr;</a>
     {% if squad %}
       {{ squad_icon(squad, 40) }}
+<<<<<<< HEAD
       <div class="chat-title"><a href="{{ url_for('squad_detail', sid=squad.id) }}"><strong>{{ squad.name }}</strong></a><h1 class="sr-only">{{ squad.name }}</h1>
         <small>{{ members }} members &middot; <i class="status on inline"></i>{{ online }} online</small></div>
     {% else %}
       <a href="{{ url_for('profile', username=other.username) }}">{{ avatar(other, 40, other.online) }}</a>
       <div class="chat-title"><a href="{{ url_for('profile', username=other.username) }}"><strong>{{ other.full_name or other.username }}</strong></a><h1 class="sr-only">Chat with {{ other.full_name or other.username }}</h1>
+=======
+      <div class="chat-title"><a href="{{ url_for('squad_detail', sid=squad.id) }}"><strong>{{ squad.name }}</strong></a>
+        <small>{{ members }} members &middot; <i class="status on inline"></i>{{ online }} online</small></div>
+    {% else %}
+      <a href="{{ url_for('profile', username=other.username) }}">{{ avatar(other, 40, other.online) }}</a>
+      <div class="chat-title"><a href="{{ url_for('profile', username=other.username) }}"><strong>{{ other.full_name or other.username }}</strong></a>
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
         <small id="presence">{% if other.online %}Online now{% elif other.last_active %}Active {{ other.last_active|ago }}{% else %}Offline{% endif %}</small></div>
     {% endif %}
   </header>

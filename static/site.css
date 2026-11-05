@@ -551,6 +551,7 @@ input[type=checkbox]{width:22px;height:22px;padding:0;flex-shrink:0;accent-color
 /* chat polish: file chips keep a readable width, and the phone composer keeps room for typing */
 .bubble .file-chip{min-width:190px}.file-chip>span:last-child{min-width:0;overflow-wrap:anywhere}
 @media(max-width:520px){.composer{gap:6px;padding:8px}.composer .attach{width:40px;height:40px;flex-shrink:0}.composer .button{padding:8px 14px}.composer textarea{padding:9px 12px}}
+<<<<<<< HEAD
 
 /* radio buttons behave like the checkboxes: small, next to their label (quiz answers, squad privacy) */
 input[type=radio]{width:22px;height:22px;padding:0;margin:0;flex-shrink:0;accent-color:#8b5cf6;cursor:pointer}
@@ -561,3 +562,5 @@ fieldset.card legend{padding:0 6px}
   .dash-grid{grid-auto-flow:row dense;grid-template-rows:auto auto auto 1fr}
   .dash-notes{grid-row:span 4;align-self:stretch}
 }
+=======
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046

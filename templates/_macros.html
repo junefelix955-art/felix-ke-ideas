@@ -24,11 +24,18 @@
    Pass online=True/False to add a green/grey presence dot. #}
 {% macro avatar(u, size=48, online=None) -%}
 {% set label = u.full_name or u.username %}
+<<<<<<< HEAD
 {% set uid = u.user_id or u.id %}
 {% set parts = label.split() %}
 <span class="av-wrap" style="--s:{{ size }}px"><span class="av" style="--s:{{ size }}px;--h:{{ 255 + (uid * 37) % 90 }}">
 {%- if u.avatar_v -%}
 <img src="{{ url_for('avatar', uid=uid, v=u.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}">
+=======
+{% set parts = label.split() %}
+<span class="av-wrap" style="--s:{{ size }}px"><span class="av" style="--s:{{ size }}px;--h:{{ 255 + (u.id * 37) % 90 }}">
+{%- if u.avatar_v -%}
+<img src="{{ url_for('avatar', uid=u.id, v=u.avatar_v) }}" alt="" width="{{ size }}" height="{{ size }}">
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 {%- else -%}
 <span aria-hidden="true">{{ ((parts[0][0] if parts else '?') ~ (parts[1][0] if parts|length > 1 else ''))|upper }}</span>
 {%- endif -%}

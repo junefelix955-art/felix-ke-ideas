@@ -172,6 +172,7 @@ def login_required(view):
     return wrapped
 
 
+<<<<<<< HEAD
 # ---------- Global write throttle (a safety net on top of the per-route limits) ----------
 _WRITE_HITS = {}
 WRITE_LIMIT, WRITE_WINDOW = 90, 60  # at most 90 writes per minute per signed-in user (or per IP when signed out)
@@ -195,10 +196,13 @@ def throttle_writes():
     return None
 
 
+=======
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 # ---------- Security headers and error pages ----------
 @app.after_request
 def add_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
+<<<<<<< HEAD
     response.headers.setdefault("X-Frame-Options", "DENY")
     # Safe CSP directives only (no script-src: the pages use inline scripts and the scanner loads Tesseract from a CDN)
     response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
@@ -206,6 +210,10 @@ def add_headers(response):
     response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(), payment=()"  # camera only for the maths scanner
     if not DEBUG:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"  # HTTPS only (not sent when testing locally)
+=======
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
     if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "admin_reports",
                             "dashboard", "notifications", "api_notifications", "settings", "profile", "my_profile"):
         response.headers["Cache-Control"] = "no-store"  # back button can't reopen the dashboard
@@ -221,6 +229,7 @@ def bad_request(e):
     return error_page(400, getattr(e, "description", "Bad request."))
 
 
+<<<<<<< HEAD
 @app.errorhandler(403)
 def forbidden(e):
     return error_page(403, "You do not have permission to do that.")
@@ -231,6 +240,8 @@ def not_allowed(e):
     return error_page(405, "That action is not allowed here.")
 
 
+=======
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 @app.errorhandler(404)
 def not_found(e):
     return error_page(404, "That page does not exist.")
@@ -714,7 +725,12 @@ def report():
     if request.headers.get("X-CSRF-Token"):
         return jsonify(ok=True)
     flash("Thanks. A moderator will review it.", "success")
+<<<<<<< HEAD
     return redirect(safe_next(request.form.get("next"), "/community"))
+=======
+    nxt = request.form.get("next", "/community")
+    return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/community")
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 
 
 @app.route("/admin/reports")
@@ -807,9 +823,14 @@ def clean_text(value, limit):
 
 
 def safe_next(target, default):
+<<<<<<< HEAD
     """Only allow redirects to paths on this site (no //host, no backslash tricks, no control characters)."""
     if (target and target.startswith("/") and not target.startswith("//") and "\\" not in target
             and not any(ord(ch) < 32 or ord(ch) == 127 for ch in target)):
+=======
+    """Only allow redirects to paths on this site."""
+    if target and target.startswith("/") and not target.startswith("//"):
+>>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
         return target
     return default
 
