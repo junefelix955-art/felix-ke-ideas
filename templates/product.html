@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import thumb, avail, product_card, err %}
+{% block title %}{{ p.title }} | Felix KE Ideas{% endblock %}
+{% block description %}{{ p.summary or p.title }}{% endblock %}
+{% block robots %}{% if not p.published %}<meta name="robots" content="noindex, nofollow">{% endif %}{% endblock %}
+{% block content %}
+<div class="shop-wrap product-page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('marketplace') }}">Marketplace</a> &rsaquo; <a href="{{ url_for('marketplace', category=p.category) }}">{{ p.category }}</a></nav>
+  {% if not p.published %}<p class="notice">Draft: only you (the admin) can see this page. <a href="{{ url_for('admin_product_edit', pid=p.id) }}">Edit it</a> to publish.</p>{% endif %}
+  <div class="product-layout">
+    <div class="product-media">
+      {{ thumb(p, p.title) }}
+      {% if p.preview_size %}
+      <section class="preview-box" aria-labelledby="pv-h">
+        <h2 id="pv-h">Preview</h2>
+        {% if p.preview_kind == 'pdf' %}<iframe class="preview" src="{{ url_for('product_preview', slug=p.slug) }}" title="Preview of {{ p.title }}" loading="lazy"></iframe>
+        {% else %}<img class="preview-img" src="{{ url_for('product_preview', slug=p.slug) }}" alt="Preview of {{ p.title }}" loading="lazy">{% endif %}
+        <p class="field-hint">This is a sample. {% if p.can_download %}The full file is free to download.{% else %}The full version unlocks after your order is confirmed.{% endif %}</p>
+      </section>
+      {% endif %}
+    </div>
+    <div class="product-info">
+      <p class="shop-tags"><span class="badge">{{ p.kind_label }}</span><span class="badge">{{ p.category }}</span>{% if p.topic %}<span class="badge">{{ p.topic }}</span>{% endif %}</p>
+      <h1>{{ p.title }}</h1>
+      {% if p.summary %}<p class="lead">{{ p.summary }}</p>{% endif %}
+      <p class="price-line"><strong class="price big{% if p.is_free %} free{% endif %}">{{ p.price_kes|money }}</strong> {{ avail(p) }}</p>
+      {% if p.description %}<div class="product-desc">{{ p.description }}</div>{% endif %}
+      <ul class="facts-list">
+        {% if p.has_file %}<li>Format: {{ p.file_kind|upper }} &middot; {{ (p.file_size / 1024)|round|int }} KB</li>{% endif %}
+        {% if p.downloads %}<li>{{ p.downloads }} download{{ '' if p.downloads == 1 else 's' }}</li>{% endif %}
+      </ul>
+
+      <section class="buy-box" id="order" aria-labelledby="buy-h">
+        {% if p.can_download %}
+          <h2 id="buy-h">Free download</h2>
+          <p>No account or payment needed.</p>
+          <a class="button" href="{{ url_for('product_download', slug=p.slug) }}">Download now</a>
+        {% elif p.availability == 'unavailable' %}
+          <h2 id="buy-h">Currently unavailable</h2>
+          {{ err(errors, 'product') }}<p>This item can't be ordered right now. <a href="{{ url_for('contact') }}">Ask me when it will be back</a>.</p>
+        {% else %}
+          <h2 id="buy-h">{{ 'Request this service' if p.kind == 'service' else 'Order this item' }}</h2>
+          <p>Total: <strong>{{ p.price_kes|money }}</strong>. No payment is taken on this page. You'll get an order reference right away, and I'll contact you with payment instructions{% if p.has_file %} and your download{% endif %}.</p>
+          <form method="POST" action="{{ url_for('product_order', slug=p.slug) }}" data-loading>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="hp-field" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+            {{ err(errors, 'product') }}
+            <label for="o-name">Your name</label>
+            <input id="o-name" name="name" type="text" maxlength="100" required autocomplete="name" value="{{ form.get('name', '') }}"{% if errors.get('name') %} aria-invalid="true" aria-describedby="err-name"{% endif %}>
+            {{ err(errors, 'name') }}
+            <label for="o-email">Email</label>
+            <input id="o-email" name="email" type="email" maxlength="254" required autocomplete="email" value="{{ form.get('email', '') }}"{% if errors.get('email') %} aria-invalid="true" aria-describedby="err-email"{% endif %}>
+            {{ err(errors, 'email') }}
+            <label for="o-phone">Phone / WhatsApp <span class="optional">(optional)</span></label>
+            <input id="o-phone" name="phone" type="tel" maxlength="25" autocomplete="tel" placeholder="0712 345 678" value="{{ form.get('phone', '') }}"{% if errors.get('phone') %} aria-invalid="true" aria-describedby="err-phone"{% endif %}>
+            {{ err(errors, 'phone') }}
+            <label for="o-note">Anything I should know? <span class="optional">(optional)</span></label>
+            <textarea id="o-note" name="note" rows="3" maxlength="1000">{{ form.get('note', '') }}</textarea>
+            <button class="button wide" type="submit">{{ 'Send request' if p.kind == 'service' else 'Place order' }} &middot; {{ p.price_kes|money }}</button>
+          </form>
+          <p class="field-hint">Your details are only used to handle this order. See the <a href="{{ url_for('privacy') }}">privacy summary</a>.</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+  {% if related %}
+  <section class="related"><h2>You might also like</h2><div class="shop-grid">{% for r in related %}{{ product_card(r) }}{% endfor %}</div></section>
+  {% endif %}
+</div>
+{% endblock %}

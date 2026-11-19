@@ -9,7 +9,7 @@
   <div class="person-info">
     <a href="{{ url_for('profile', username=u.username) }}" class="person-name">{{ u.full_name or u.username }}</a>
     <span>@{{ u.username }}</span>
-    {% if u.course or u.university %}<span>{{ [u.course, u.university]|select|join(' &middot; ')|safe if false else [u.course, u.university]|select|join(' · ') }}</span>{% endif %}
+    {% if u.course or u.university %}<span>{{ [u.course, u.university]|select|join(' · ') }}</span>{% endif %}
     <span class="presence {{ 'on' if u.online else '' }}">{% if u.online %}Online now{% elif u.last_active %}Active {{ u.last_active|ago }}{% else %}Offline{% endif %}</span>
   </div>
   <div class="person-actions">

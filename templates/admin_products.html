@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager, status_badge %}
+{% block title %}Marketplace admin | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Marketplace</h1><p>Add, edit, publish and remove listings. {{ total }} found.</p></div><a class="admin-button" href="{{ url_for('admin_product_new') }}">+ New listing</a></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <form method="GET" class="admin-search-form" role="search">
+      <input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Search title or summary" aria-label="Search listings">
+      <select name="status" aria-label="Status"><option value="">Any status</option><option value="published"{% if f.get('status') == 'published' %} selected{% endif %}>Published</option><option value="draft"{% if f.get('status') == 'draft' %} selected{% endif %}>Draft</option></select>
+      <select name="kind" aria-label="Type"><option value="">Any type</option>{% for k, label in kinds %}<option value="{{ k }}"{% if f.get('kind') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <select name="category" aria-label="Category"><option value="">Any category</option>{% for c in MARKET_CATEGORIES %}<option{% if f.get('category') == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+      <button class="admin-button" type="submit">Filter</button><a class="admin-button admin-button-light" href="{{ url_for('admin_marketplace') }}">Clear</a>
+    </form>
+  </div>
+  <div class="admin-panel">
+    {% if items %}
+    <div class="admin-table-wrapper"><table class="admin-table">
+      <thead><tr><th>Listing</th><th>Type</th><th>Price</th><th>Status</th><th>Views</th><th>Downloads</th><th>Updated</th><th>Actions</th></tr></thead>
+      <tbody>{% for p in items %}
+      <tr>
+        <td><strong>{{ p.title }}</strong><br><small>{{ p.category }}{% if p.topic %} &middot; {{ p.topic }}{% endif %}</small>{% if p.featured %} <span class="badge">Featured</span>{% endif %}</td>
+        <td>{{ p.kind_label }}{% if p.has_file %}<br><small>file attached</small>{% endif %}</td>
+        <td>{{ p.price_kes|money }}</td>
+        <td>{% if p.published %}<span class="badge good">Published</span>{% else %}<span class="badge muted-pill">Draft</span>{% endif %}<br><small>{{ p.avail_label }}</small></td>
+        <td>{{ p.views }}</td><td>{{ p.downloads }}</td><td>{{ p.updated_at|site_time('%d %b %Y') }}</td>
+        <td><div class="admin-actions">
+          <a class="admin-button admin-button-light small" href="{{ url_for('admin_product_edit', pid=p.id) }}">Edit</a>
+          <a class="admin-button admin-button-light small" href="{{ url_for('product_detail', slug=p.slug) }}">View</a>
+          <form method="POST" action="{{ url_for('admin_product_toggle', pid=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button class="admin-button admin-button-light small" type="submit">{{ 'Unpublish' if p.published else 'Publish' }}</button></form>
+          <form method="POST" action="{{ url_for('admin_product_delete', pid=p.id) }}" onsubmit="return confirm('Delete this listing permanently? Existing orders keep their details, but the listing and its files are removed.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="admin-delete-button" type="submit">Delete</button></form>
+        </div></td>
+      </tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% elif f.get('q') or f.get('status') or f.get('kind') or f.get('category') %}<p class="admin-empty">No listings match. <a href="{{ url_for('admin_marketplace') }}">Clear filters</a>.</p>
+    {% else %}<p class="admin-empty">No listings yet. <a href="{{ url_for('admin_product_new') }}">Create your first one</a>.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

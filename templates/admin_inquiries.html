@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager, status_badge %}
+{% block title %}Website requests | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Website requests</h1><p>Enquiries from the Hire Me page. {{ total }} found.</p></div></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <form method="GET" class="admin-search-form" role="search">
+      <input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Name, email or description" aria-label="Search requests">
+      <select name="status" aria-label="Status"><option value="">Any status</option>{% for k, label in statuses %}<option value="{{ k }}"{% if f.get('status') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <select name="type" aria-label="Project type"><option value="">Any project</option>{% for t in project_types %}<option{% if f.get('type') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+      <label class="inline-label">From <input type="date" name="from" value="{{ f.get('from', '') }}"></label>
+      <label class="inline-label">To <input type="date" name="to" value="{{ f.get('to', '') }}"></label>
+      <label class="check inline-check"><input type="checkbox" name="unread" value="1"{% if f.get('unread') %} checked{% endif %}> Unread only</label>
+      <button class="admin-button" type="submit">Filter</button><a class="admin-button admin-button-light" href="{{ url_for('admin_inquiries') }}">Clear</a>
+    </form>
+  </div>
+  <div class="admin-panel">
+    {% if items %}
+    <div class="admin-table-wrapper"><table class="admin-table">
+      <thead><tr><th>Received</th><th>From</th><th>Project</th><th>Budget</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>{% for i in items %}
+      <tr{% if not i.is_read %} class="unread-row"{% endif %}>
+        <td>{{ i.created_at|site_time }}{% if not i.is_read %}<br><span class="badge warn">New</span>{% endif %}</td>
+        <td>{{ i.name }}<br><small>{{ i.email }}</small></td>
+        <td>{{ i.project_type }}<br><small class="admin-message-text">{{ i.description[:110] }}{% if i.description|length > 110 %}...{% endif %}</small></td>
+        <td>{{ i.budget }}</td>
+        <td>{{ status_badge(INQUIRY_LABEL.get(i.status, i.status), i.status) }}</td>
+        <td><div class="admin-actions"><a class="admin-button admin-button-light small" href="{{ url_for('admin_inquiry', iid=i.id) }}">Open</a>
+          <form method="POST" action="{{ url_for('admin_inquiry_read', iid=i.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button class="admin-button admin-button-light small" type="submit">{{ 'Mark unread' if i.is_read else 'Mark read' }}</button></form></div></td>
+      </tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% elif f.get('q') or f.get('status') or f.get('type') or f.get('unread') or f.get('from') or f.get('to') %}<p class="admin-empty">No requests match. <a href="{{ url_for('admin_inquiries') }}">Clear filters</a>.</p>
+    {% else %}<p class="admin-empty">No website requests yet. They appear here when someone uses the Hire Me form.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

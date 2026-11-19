@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager, status_badge %}
+{% block title %}Orders | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Orders</h1><p>Order requests from the marketplace. {{ total }} found.</p></div></div>
+  {% include "_admin_nav.html" %}
+  <p class="notice">Online payment is not connected yet, so orders arrive as requests. Contact the customer to agree payment. "Paid" is reserved for payments verified by the payment provider (coming in the next update) and cannot be set by hand.</p>
+  <div class="admin-panel">
+    <form method="GET" class="admin-search-form" role="search">
+      <input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Reference, name, email or item" aria-label="Search orders">
+      <select name="status" aria-label="Status"><option value="">Any status</option>{% for k, label in statuses %}<option value="{{ k }}"{% if f.get('status') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <label class="inline-label">From <input type="date" name="from" value="{{ f.get('from', '') }}"></label>
+      <label class="inline-label">To <input type="date" name="to" value="{{ f.get('to', '') }}"></label>
+      <button class="admin-button" type="submit">Filter</button><a class="admin-button admin-button-light" href="{{ url_for('admin_orders') }}">Clear</a>
+    </form>
+  </div>
+  <div class="admin-panel">
+    {% if orders %}
+    <div class="admin-table-wrapper"><table class="admin-table">
+      <thead><tr><th>Order</th><th>Item</th><th>Customer</th><th>Status</th><th>Update</th></tr></thead>
+      <tbody>{% for o in orders %}
+      <tr>
+        <td><strong>{{ o.reference }}</strong><br><small>{{ o.created_at|site_time }}</small></td>
+        <td>{% if o.slug %}<a href="{{ url_for('product_detail', slug=o.slug) }}">{{ o.title }}</a>{% else %}{{ o.title }}{% endif %}<br><strong>{{ o.total|money }}</strong></td>
+        <td>{{ o.name }}<br><a href="mailto:{{ o.email }}?subject={{ ('Your order ' ~ o.reference)|urlencode }}">{{ o.email }}</a>
+          {% if o.phone %}<br><a href="tel:{{ o.phone }}">{{ o.phone }}</a> &middot; <a href="https://wa.me/{{ o.phone|wa_digits }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
+          {% if o.note %}<br><small class="admin-message-text">Note: {{ o.note }}</small>{% endif %}</td>
+        <td>{{ status_badge(ORDER_LABEL.get(o.status, o.status), o.status) }}</td>
+        <td>{% if o.status in settable %}
+          <form method="POST" action="{{ url_for('admin_order_status', oid=o.id) }}" class="status-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+            <select name="status" aria-label="New status for {{ o.reference }}">{% for s in settable %}<option value="{{ s }}"{% if o.status == s %} selected{% endif %}>{{ ORDER_LABEL[s] }}</option>{% endfor %}</select>
+            <button class="admin-button admin-button-light small" type="submit">Save</button></form>
+          {% else %}<small>Locked (verified payment)</small>{% endif %}</td>
+      </tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% elif f.get('q') or f.get('status') or f.get('from') or f.get('to') %}<p class="admin-empty">No orders match. <a href="{{ url_for('admin_orders') }}">Clear filters</a>.</p>
+    {% else %}<p class="admin-empty">No orders yet. They will appear here when someone orders from the marketplace.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

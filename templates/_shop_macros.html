@@ -1,0 +1,46 @@
+{# Shared pieces for the marketplace, learning resources and admin lists. #}
+{% macro thumb(p, alt='') -%}
+<span class="shop-thumb" style="--h:{{ 190 + (p.id * 47) % 60 }}">
+{%- if p.image_v -%}<img src="{{ url_for('product_image', slug=p.slug, v=p.image_v) }}" alt="{{ alt }}" loading="lazy" width="640" height="400">
+{%- else -%}<span aria-hidden="true">{{ p.title[:1]|upper }}</span>{%- endif -%}
+</span>
+{%- endmacro %}
+
+{% macro avail(p) -%}
+<span class="badge {{ 'good' if p.availability == 'available' else ('warn' if p.availability == 'limited' else 'muted-pill') }}">{{ p.avail_label }}</span>
+{%- endmacro %}
+
+{% macro product_card(p) %}
+<article class="shop-card">
+  <a class="shop-media" href="{{ url_for('product_detail', slug=p.slug) }}" tabindex="-1" aria-hidden="true">{{ thumb(p) }}</a>
+  <div class="shop-body">
+    <p class="shop-tags"><span class="badge">{{ p.kind_label }}</span><span class="badge">{{ p.topic or p.category }}</span></p>
+    <h3><a href="{{ url_for('product_detail', slug=p.slug) }}">{{ p.title }}</a></h3>
+    {% if p.summary %}<p class="shop-summary">{{ p.summary }}</p>{% endif %}
+    <div class="shop-foot">
+      <strong class="price{% if p.is_free %} free{% endif %}">{{ p.price_kes|money }}</strong>
+      {{ avail(p) }}
+    </div>
+    <a class="button small" href="{{ url_for('product_detail', slug=p.slug) }}">{{ 'Get it free' if p.can_download else ('Request' if p.kind == 'service' else 'View details') }}</a>
+  </div>
+</article>
+{% endmacro %}
+
+{% macro pager(page, pages) %}
+{% if pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  {% if page > 1 %}<a class="button button-outline small" href="{{ page_url(page - 1) }}">&larr; Previous</a>{% endif %}
+  <span>Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="button button-outline small" href="{{ page_url(page + 1) }}">Next &rarr;</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
+
+{# error line under a form field; pair with aria-describedby="err-NAME" on the input #}
+{% macro err(errors, name) -%}
+{% if errors.get(name) %}<p class="field-error" id="err-{{ name }}" role="alert">{{ errors[name] }}</p>{% endif %}
+{%- endmacro %}
+
+{% macro status_badge(label, status) -%}
+<span class="badge {{ {'paid': 'good', 'completed': 'good', 'pending': 'warn', 'in_progress': 'warn', 'cancelled': 'muted-pill', 'failed': 'muted-pill'}.get(status, '') }}">{{ label }}</span>
+{%- endmacro %}

@@ -1,4 +1,4 @@
-# Private environment settings
+# Private environment settings (never commit secrets)
 .env
 
 # Python cache files
@@ -9,5 +9,7 @@ __pycache__/
 .venv/
 venv/
 
-# Local database containing contact messages
+# Local databases / backups
 website.db
+*.sqlite3
+backups/

@@ -21,7 +21,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import psycopg.errors
 
 import features
-from features import common as fc
+from features import business, common as fc
 
 load_dotenv()
 
@@ -172,7 +172,6 @@ def login_required(view):
     return wrapped
 
 
-<<<<<<< HEAD
 # ---------- Global write throttle (a safety net on top of the per-route limits) ----------
 _WRITE_HITS = {}
 WRITE_LIMIT, WRITE_WINDOW = 90, 60  # at most 90 writes per minute per signed-in user (or per IP when signed out)
@@ -196,13 +195,10 @@ def throttle_writes():
     return None
 
 
-=======
->>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 # ---------- Security headers and error pages ----------
 @app.after_request
 def add_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
-<<<<<<< HEAD
     response.headers.setdefault("X-Frame-Options", "DENY")
     # Safe CSP directives only (no script-src: the pages use inline scripts and the scanner loads Tesseract from a CDN)
     response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
@@ -210,10 +206,6 @@ def add_headers(response):
     response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(), payment=()"  # camera only for the maths scanner
     if not DEBUG:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"  # HTTPS only (not sent when testing locally)
-=======
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
->>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
     if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "admin_reports",
                             "dashboard", "notifications", "api_notifications", "settings", "profile", "my_profile"):
         response.headers["Cache-Control"] = "no-store"  # back button can't reopen the dashboard
@@ -229,7 +221,6 @@ def bad_request(e):
     return error_page(400, getattr(e, "description", "Bad request."))
 
 
-<<<<<<< HEAD
 @app.errorhandler(403)
 def forbidden(e):
     return error_page(403, "You do not have permission to do that.")
@@ -240,8 +231,6 @@ def not_allowed(e):
     return error_page(405, "That action is not allowed here.")
 
 
-=======
->>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 @app.errorhandler(404)
 def not_found(e):
     return error_page(404, "That page does not exist.")
@@ -265,7 +254,16 @@ def server_error(e):
 # ---------- Public pages ----------
 @app.route("/")
 def index():
-    return render_template("index.html", stats=get_stats())
+    shop = {"featured": [], "free": []}
+    try:
+        c = get_db_connection()
+        try:
+            shop = business.home_data(c)
+        finally:
+            c.close()
+    except Exception:
+        pass  # the home page must load even if the shop tables are unavailable
+    return render_template("index.html", stats=get_stats(), shop=shop)
 
 
 @app.route("/about")
@@ -333,7 +331,8 @@ def login():
         username = request.form.get("username", "")
         password = request.form.get("password", "")
 
-        if hmac.compare_digest(username, ADMIN_USERNAME) and check_password_hash(
+        # Compare as bytes: compare_digest() raises an error (a 500 page) for text containing non-ASCII characters.
+        if hmac.compare_digest(username.encode("utf-8"), ADMIN_USERNAME.encode("utf-8")) and check_password_hash(
             ADMIN_PASSWORD_HASH, password
         ):
             session.clear()
@@ -351,20 +350,31 @@ def login():
 @login_required
 def admin():
     search = request.args.get("search", "").strip()
+    state = request.args.get("show", "")  # "", "unread" or "read"
+    try:
+        page = max(1, min(int(request.args.get("page", "1")), 100000))
+    except ValueError:
+        page = 1
+    per_page = 25
+    where, params = [], []
+    if search:
+        pattern = "%" + search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        where.append("(name ILIKE %s OR email ILIKE %s OR message ILIKE %s)")
+        params += [pattern] * 3
+    if state == "unread":
+        where.append("NOT is_read")
+    elif state == "read":
+        where.append("is_read")
+    sql_where = (" WHERE " + " AND ".join(where)) if where else ""
     connection = get_db_connection()
     try:
         total_messages = connection.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
-        if search:
-            pattern = f"%{search}%"
-            messages = connection.execute(
-                """SELECT id, name, email, message, created_at FROM messages
-                   WHERE name ILIKE %s OR email ILIKE %s ORDER BY id DESC""",
-                (pattern, pattern),
-            ).fetchall()
-        else:
-            messages = connection.execute(
-                "SELECT id, name, email, message, created_at FROM messages ORDER BY id DESC"
-            ).fetchall()
+        unread_messages = connection.execute("SELECT COUNT(*) FROM messages WHERE NOT is_read").fetchone()[0]
+        shown = connection.execute("SELECT COUNT(*) FROM messages" + sql_where, tuple(params)).fetchone()[0]
+        messages = connection.execute(
+            "SELECT id, name, email, message, created_at, is_read FROM messages" + sql_where +
+            " ORDER BY id DESC LIMIT %s OFFSET %s", tuple(params) + (per_page, (page - 1) * per_page)).fetchall()
+        overview = business.admin_overview(connection)
     finally:
         connection.close()
 
@@ -372,9 +382,41 @@ def admin():
         "admin.html",
         messages=messages,
         total_messages=total_messages,
-        total_search_results=len(messages),
+        unread_messages=unread_messages,
+        total_search_results=shown,
         search_term=search,
+        show=state,
+        page=page,
+        pages=max(1, -(-shown // per_page)),
+        overview=overview,
     )
+
+
+@app.route("/admin/messages/<int:message_id>/read", methods=["POST"])
+@login_required
+def admin_message_read(message_id):
+    validate_csrf()
+    connection = get_db_connection()
+    try:
+        connection.execute("UPDATE messages SET is_read = NOT is_read WHERE id = %s", (message_id,))
+        connection.commit()
+    finally:
+        connection.close()
+    return redirect(safe_next(request.form.get("next"), url_for("admin")))
+
+
+@app.route("/admin/messages/read-all", methods=["POST"])
+@login_required
+def admin_messages_read_all():
+    validate_csrf()
+    connection = get_db_connection()
+    try:
+        connection.execute("UPDATE messages SET is_read = TRUE WHERE NOT is_read")
+        connection.commit()
+    finally:
+        connection.close()
+    flash("All messages marked as read.", "success")
+    return redirect(url_for("admin"))
 
 
 @app.route("/admin/export.csv")
@@ -486,6 +528,8 @@ def register():
         if not error:
             c = get_db_connection()
             try:
+                if c.execute("SELECT 1 FROM users WHERE lower(username) = lower(%s)", (username,)).fetchone():
+                    raise psycopg.errors.UniqueViolation()
                 row = c.execute(
                     "INSERT INTO users (username, password_hash) VALUES (%s, %s) RETURNING id",
                     (username, generate_password_hash(password))).fetchone()
@@ -725,12 +769,7 @@ def report():
     if request.headers.get("X-CSRF-Token"):
         return jsonify(ok=True)
     flash("Thanks. A moderator will review it.", "success")
-<<<<<<< HEAD
     return redirect(safe_next(request.form.get("next"), "/community"))
-=======
-    nxt = request.form.get("next", "/community")
-    return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/community")
->>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
 
 
 @app.route("/admin/reports")
@@ -823,14 +862,9 @@ def clean_text(value, limit):
 
 
 def safe_next(target, default):
-<<<<<<< HEAD
     """Only allow redirects to paths on this site (no //host, no backslash tricks, no control characters)."""
     if (target and target.startswith("/") and not target.startswith("//") and "\\" not in target
             and not any(ord(ch) < 32 or ord(ch) == 127 for ch in target)):
-=======
-    """Only allow redirects to paths on this site."""
-    if target and target.startswith("/") and not target.startswith("//"):
->>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
         return target
     return default
 
@@ -1212,7 +1246,8 @@ def profile(username):
 
 
 features.register_all(app, SimpleNamespace(
-    get_db_connection=get_db_connection, validate_csrf=validate_csrf, user_required=user_required, limiter=limiter,
+    get_db_connection=get_db_connection, validate_csrf=validate_csrf, user_required=user_required, admin_required=login_required,
+    limiter=limiter,
     notify=notify, load_user=load_user, clean_text=clean_text, safe_next=safe_next, USERNAME_RE=USERNAME_RE,
     user_stats=user_stats, sniff_image=sniff_image))
 

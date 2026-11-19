@@ -1,22 +1,24 @@
 {% extends "base.html" %}
+{% from "_shop_macros.html" import pager %}
 {% block title %}Admin dashboard | Felix KE Ideas{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block content %}
 <div class="admin-container">
-  <div class="admin-top">
-    <div><h1>Admin dashboard</h1><p>Messages sent through your website.</p></div>
-    <a href="{{ url_for('admin_reports') }}" class="admin-button admin-button-light">Moderation</a>
-    <form action="{{ url_for('logout') }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="admin-button">Log out</button></form>
-  </div>
+  <div class="admin-top"><div><h1>Admin dashboard</h1><p>Your messages, shop and website requests in one place.</p></div></div>
+  {% include "_admin_nav.html" %}
 
-  <div class="admin-stats">
-    <div class="admin-stat"><span>{{ total_messages }}</span>Total messages</div>
-    <div class="admin-stat"><span>{{ total_search_results }}</span>Shown now</div>
+  <div class="admin-stats four">
+    <a class="admin-stat" href="{{ url_for('admin', show='unread') }}"><span>{{ unread_messages }}</span>Unread messages</a>
+    <a class="admin-stat" href="{{ url_for('admin_inquiries', unread=1) }}"><span>{{ overview.new_inquiries }}</span>New website requests</a>
+    <a class="admin-stat" href="{{ url_for('admin_orders', status='pending') }}"><span>{{ overview.open_orders }}</span>Orders awaiting payment</a>
+    <a class="admin-stat" href="{{ url_for('admin_marketplace', status='published') }}"><span>{{ overview.published }}<small> / {{ overview.products }}</small></span>Listings live</a>
   </div>
 
   <div class="admin-panel">
+    <h2>Messages <small class="count">{{ total_messages }} total</small></h2>
     <form action="{{ url_for('admin') }}" method="GET" class="admin-search-form">
-      <input type="text" name="search" placeholder="Search by name or email" value="{{ search_term }}" aria-label="Search messages by name or email">
+      <input type="text" name="search" placeholder="Search name, email or message" value="{{ search_term }}" aria-label="Search messages">
+      <select name="show" aria-label="Show"><option value="">All</option><option value="unread"{% if show == 'unread' %} selected{% endif %}>Unread</option><option value="read"{% if show == 'read' %} selected{% endif %}>Read</option></select>
       <button type="submit" class="admin-button">Search</button>
       <a href="{{ url_for('admin') }}" class="admin-button admin-button-light">Show all</a>
       <a href="{{ url_for('export_csv') }}" class="admin-button admin-button-light">Export CSV</a>
@@ -24,27 +26,30 @@
   </div>
 
   <div class="admin-panel">
+    {% if unread_messages %}
+    <form action="{{ url_for('admin_messages_read_all') }}" method="POST" class="right-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="admin-button admin-button-light">Mark all {{ unread_messages }} as read</button></form>
+    {% endif %}
     {% if messages %}
     <div class="admin-table-wrapper"><table class="admin-table">
       <thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Message</th><th>Actions</th></tr></thead>
       <tbody>
       {% for m in messages %}
-        <tr>
-          <td>{{ m[4].strftime('%d %b %Y, %H:%M') }}</td>
+        <tr{% if not m[5] %} class="unread-row"{% endif %}>
+          <td>{{ m[4]|site_time }}{% if not m[5] %}<br><span class="badge warn">New</span>{% endif %}</td>
           <td>{{ m[1] }}</td>
           <td><a href="mailto:{{ m[2] }}">{{ m[2] }}</a></td>
           <td class="admin-message-text">{{ m[3] }}</td>
-          <td>
+          <td><div class="admin-actions">
+            <form action="{{ url_for('admin_message_read', message_id=m[0]) }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button type="submit" class="admin-button admin-button-light small">{{ 'Mark unread' if m[5] else 'Mark read' }}</button></form>
             <form action="{{ url_for('delete_message', message_id=m[0]) }}" method="POST" onsubmit="return confirm('Delete this message? This cannot be undone.');">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="admin-delete-button">Delete</button>
-            </form>
-          </td>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="admin-delete-button">Delete</button></form>
+          </div></td>
         </tr>
       {% endfor %}
       </tbody></table></div>
-    {% elif search_term %}
-      <p class="admin-empty">No messages match "{{ search_term }}". <a href="{{ url_for('admin') }}">Show all messages</a>.</p>
+    {{ pager(page, pages) }}
+    {% elif search_term or show %}
+      <p class="admin-empty">No messages match your search. <a href="{{ url_for('admin') }}">Show all messages</a>.</p>
     {% else %}
       <p class="admin-empty">No messages yet. New contact-form messages will appear here.</p>
     {% endif %}

@@ -1,13 +1,15 @@
 {% extends "base.html" %}
+{% from "_shop_macros.html" import product_card %}
+{% block description %}Felix KE Ideas: learning resources, website development, a friendly maths and programming community, and the Maths Sprint game. Code, Learn, Build, Grow.{% endblock %}
 {% block content %}
 <section class="hero">
   <div class="hero-content">
-    <p class="live-pill"><span class="dot"></span> Live community</p>
+    <p class="live-pill"><span class="dot"></span> Code &bull; Learn &bull; Build &bull; Grow</p>
     <h1>Turning ideas into <span class="typed"><span id="typed">digital solutions</span><span class="caret" aria-hidden="true"></span></span></h1>
-    <p class="hero-description">A live community for learning maths, programming and data analysis. Read what others discover, share what you know, and sharpen your mind with a quick game.</p>
+    <p class="hero-description">Original learning resources for programming, maths and data analysis, websites built for individuals and small businesses, and a friendly community to learn with.</p>
     <div class="hero-buttons">
-      <a href="{{ url_for('register') }}" class="button">Join free</a>
-      <a href="{{ url_for('community') }}" class="button button-outline">Browse posts</a>
+      <a href="{{ url_for('marketplace') }}" class="button">Browse the marketplace</a>
+      <a href="{{ url_for('hire') }}" class="button button-outline">Hire me for a website</a>
     </div>
     <div class="stats-strip" aria-live="polite">
       <div><strong id="stat-members">{{ stats.members }}</strong><span>Members</span></div>
@@ -17,7 +19,33 @@
   </div>
 </section>
 
-<section class="section-pad">
+<section class="section-pad" aria-labelledby="what-h">
+  <div class="section-heading"><h2 id="what-h">What you can do here</h2><p>Learn something new, get something built, or join in.</p></div>
+  <div class="home-grid">
+    <a class="home-card" href="{{ url_for('marketplace') }}"><span class="home-ico" aria-hidden="true">&#128717;</span><h3>Marketplace</h3><p>Guides, templates and services, with free downloads and premium items.</p><span class="go">Browse &rarr;</span></a>
+    <a class="home-card" href="{{ url_for('learn') }}"><span class="home-ico" aria-hidden="true">&#128218;</span><h3>Learn</h3><p>Python, HTML and CSS, Flask, Excel, statistics and maths. Preview before you download.</p><span class="go">Start learning &rarr;</span></a>
+    <a class="home-card" href="{{ url_for('hire') }}"><span class="home-ico" aria-hidden="true">&#128187;</span><h3>Hire me</h3><p>Portfolio sites, business websites, landing pages and simple Flask apps.</p><span class="go">Request a website &rarr;</span></a>
+    <a class="home-card" href="{{ url_for('community') }}"><span class="home-ico" aria-hidden="true">&#128172;</span><h3>Community</h3><p>Share tips, ask questions and chat live with other learners. Free to join.</p><span class="go">Join in &rarr;</span></a>
+  </div>
+</section>
+
+{% if shop.featured %}
+<section class="section-pad alt" aria-labelledby="feat-h">
+  <div class="section-heading"><h2 id="feat-h">Featured</h2><p>Fresh from the marketplace.</p></div>
+  <div class="shop-wrap"><div class="shop-grid">{% for p in shop.featured %}{{ product_card(p) }}{% endfor %}</div>
+  <p class="section-more"><a class="button button-outline" href="{{ url_for('marketplace') }}">See everything</a></p></div>
+</section>
+{% endif %}
+
+{% if shop.free %}
+<section class="section-pad" aria-labelledby="free-h">
+  <div class="section-heading"><h2 id="free-h">Free to download</h2><p>Original notes and guides, no payment needed.</p></div>
+  <div class="shop-wrap"><div class="shop-grid">{% for p in shop.free %}{{ product_card(p) }}{% endfor %}</div>
+  <p class="section-more"><a class="button button-outline" href="{{ url_for('learn', price='free') }}">All free resources</a></p></div>
+</section>
+{% endif %}
+
+<section class="section-pad{% if not shop.featured and not shop.free %} alt{% endif %}">
   <div class="section-heading"><h2>Fresh from the community</h2><p>Updates automatically while you watch.</p></div>
   <ul class="live-feed" id="live-feed">
     {% for p in stats.latest %}<li><a href="{{ url_for('community') }}#post-{{ p.id }}">{{ p.title }}</a><span>by {{ p.author }}</span></li>
@@ -35,17 +63,8 @@
 
 <section class="section-pad">
   <div class="play-teaser">
-    <div><h2>Think you're quick?</h2><p>Maths Sprint gives you 30 seconds to answer as many sums as you can. Beat your best score.</p></div>
+    <div><h2>Think you're quick?</h2><p>Maths Sprint gives you 30 seconds to answer as many sums as you can. Free to play. Beat your best score.</p></div>
     <a href="{{ url_for('play') }}" class="button">Play now</a>
-  </div>
-</section>
-
-<section class="products-section" id="products">
-  <div class="products-heading section-heading"><h2>Services</h2><p>Need something built or analysed? Get in touch.</p></div>
-  <div class="products-grid">
-    <article class="product-card"><h3>Website development</h3><p>Clean, responsive websites with working forms and databases.</p><ul><li>Layout and structure</li><li>Mobile-friendly design</li><li>Contact forms</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
-    <article class="product-card"><h3>Data analysis</h3><p>Turn raw figures into tables, charts and clear findings.</p><ul><li>Data organisation</li><li>Statistical analysis</li><li>Charts</li></ul><a href="{{ url_for('contact') }}" class="button">Make an enquiry</a></article>
-    <article class="product-card"><h3>Digital projects</h3><p>Prototypes that combine programming and problem-solving.</p><ul><li>Prototypes</li><li>Programming projects</li><li>Problem-solving</li></ul><a href="{{ url_for('contact') }}" class="button">Discuss a project</a></article>
   </div>
 </section>
 
@@ -63,7 +82,7 @@
 (function(){
   var el=document.getElementById("typed");
   if(el&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-    var words=["digital solutions","working websites","data insights","shared knowledge"],w=0,c=words[0].length,del=true;
+    var words=["digital solutions","working websites","learning resources","data insights"],w=0,c=words[0].length,del=true;
     (function tick(){
       var word=words[w];
       if(del){c--;}else{c++;}

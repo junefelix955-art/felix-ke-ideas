@@ -1,0 +1,1 @@
+class UniqueViolation(Exception): pass

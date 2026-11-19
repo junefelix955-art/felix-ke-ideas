@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Order {{ o.reference }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<section class="confirm-card">
+  <p class="confirm-tick" aria-hidden="true">&#10003;</p>
+  <h1>Thank you, {{ o.name }}.</h1>
+  <p>Your order has been received. Keep this reference: you can quote it when you contact me.</p>
+  <p class="order-ref" aria-label="Order reference">{{ o.reference }}</p>
+  <dl class="order-facts">
+    <div><dt>Item</dt><dd>{% if o.slug %}<a href="{{ url_for('product_detail', slug=o.slug) }}">{{ o.title }}</a>{% else %}{{ o.title }}{% endif %}</dd></div>
+    <div><dt>Total</dt><dd>{{ o.total|money }}</dd></div>
+    <div><dt>Status</dt><dd>{{ ORDER_LABEL.get(o.status, o.status) }}</dd></div>
+    <div><dt>Placed</dt><dd>{{ o.created_at|site_time }}</dd></div>
+    <div><dt>Contact email</dt><dd>{{ o.email }}</dd></div>
+  </dl>
+  <h2>What happens next</h2>
+  <ol class="next-steps">
+    <li>I'll contact you at <strong>{{ o.email }}</strong> to confirm the order and share payment instructions.</li>
+    <li>Once payment is confirmed, you receive your item.</li>
+  </ol>
+  <p class="field-hint">Please save this page's link. Anyone who has it can view this confirmation, so don't share it publicly.</p>
+  <div class="btn-row center">
+    {% if whatsapp_number %}<a class="button" href="https://wa.me/{{ whatsapp_number }}?text={{ ('Hello, I placed order ' ~ o.reference ~ ' on Felix KE Ideas.')|urlencode }}" target="_blank" rel="noopener noreferrer">Message on WhatsApp</a>{% endif %}
+    <a class="button button-outline" href="{{ url_for('marketplace') }}">Keep browsing</a>
+  </div>
+</section>
+{% endblock %}

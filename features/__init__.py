@@ -4,11 +4,7 @@ import importlib
 from . import schema
 from . import common as fc
 
-<<<<<<< HEAD
-MODULES = ("buddies", "squads", "chat", "questions", "library", "solver", "leaderboard", "sessions")
-=======
-MODULES = ("buddies", "squads", "chat", "questions", "library", "solver")
->>>>>>> 237dc961418455350f04d733c84ae7a28bdfe046
+MODULES = ("buddies", "squads", "chat", "questions", "library", "solver", "leaderboard", "sessions", "business")
 
 
 def init_schema(connection):

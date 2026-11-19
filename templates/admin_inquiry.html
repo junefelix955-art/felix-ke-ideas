@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import status_badge %}
+{% block title %}Request from {{ i.name }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container narrow">
+  <div class="admin-top"><div><h1>Website request</h1><p>Received {{ i.created_at|site_time }} &middot; {{ status_badge(INQUIRY_LABEL.get(i.status, i.status), i.status) }}</p></div><a class="admin-button admin-button-light" href="{{ url_for('admin_inquiries') }}">&larr; All requests</a></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <dl class="order-facts left">
+      <div><dt>Name</dt><dd>{{ i.name }}</dd></div>
+      <div><dt>Email</dt><dd><a href="mailto:{{ i.email }}">{{ i.email }}</a></dd></div>
+      {% if i.phone %}<div><dt>Phone</dt><dd><a href="tel:{{ i.phone }}">{{ i.phone }}</a></dd></div>{% endif %}
+      <div><dt>Project type</dt><dd>{{ i.project_type }}</dd></div>
+      <div><dt>Budget</dt><dd>{{ i.budget or 'Not given' }}</dd></div>
+      <div><dt>Timeline</dt><dd>{{ i.timeline or 'No preference' }}</dd></div>
+    </dl>
+    <h2>Description</h2>
+    <p class="admin-message-text wide-text">{{ i.description }}</p>
+    <h2>Contact the customer</h2>
+    <div class="btn-row">
+      <a class="admin-button" href="mailto:{{ i.email }}?subject={{ ('Re: your website request (' ~ i.project_type ~ ')')|urlencode }}">Reply by email</a>
+      {% if i.phone %}<a class="admin-button admin-button-light" href="https://wa.me/{{ i.phone|wa_digits }}?text={{ ('Hello ' ~ i.name ~ ', thanks for your website request on Felix KE Ideas.')|urlencode }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      <a class="admin-button admin-button-light" href="tel:{{ i.phone }}">Call</a>{% endif %}
+    </div>
+  </div>
+  <form method="POST" action="{{ url_for('admin_inquiry_update', iid=i.id) }}" class="admin-panel admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Status and private notes</h2>
+    <label for="i-status">Status</label>
+    <select id="i-status" name="status">{% for k, label in statuses %}<option value="{{ k }}"{% if i.status == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <label for="i-notes">Notes <span class="optional">(only you can see these)</span></label>
+    <textarea id="i-notes" name="notes" rows="5" maxlength="2000">{{ i.notes }}</textarea>
+    <div class="btn-row"><button class="admin-button" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock %}

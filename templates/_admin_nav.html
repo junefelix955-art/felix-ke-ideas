@@ -1,0 +1,9 @@
+{% set ep = request.endpoint or '' %}
+<nav class="admin-tabs" aria-label="Admin sections">
+  <a href="{{ url_for('admin') }}"{% if ep in ('admin', ) %} aria-current="page"{% endif %}>Messages</a>
+  <a href="{{ url_for('admin_marketplace') }}"{% if ep.startswith('admin_product') or ep == 'admin_marketplace' %} aria-current="page"{% endif %}>Marketplace</a>
+  <a href="{{ url_for('admin_orders') }}"{% if ep.startswith('admin_order') %} aria-current="page"{% endif %}>Orders</a>
+  <a href="{{ url_for('admin_inquiries') }}"{% if ep.startswith('admin_inquir') %} aria-current="page"{% endif %}>Website requests</a>
+  <a href="{{ url_for('admin_reports') }}"{% if ep == 'admin_reports' %} aria-current="page"{% endif %}>Moderation</a>
+  <form action="{{ url_for('logout') }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Log out</button></form>
+</nav>

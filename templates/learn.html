@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import product_card, pager %}
+{% block title %}Learn | Felix KE Ideas{% endblock %}
+{% block description %}Free and premium learning resources: Python, HTML and CSS, Flask, Excel, statistics, mathematics and data analysis.{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p>
+  <h1>Learning resources</h1>
+  <p>Notes, guides and tutorials on programming, maths and data analysis. Preview first, then download free resources or order premium ones.</p>
+</section>
+<div class="shop-wrap">
+  <form method="GET" class="shop-filters" role="search" data-loading>
+    <div class="grow"><label for="q">Search by title or topic</label><input type="search" id="q" name="q" value="{{ f.get('q', '') }}" maxlength="60" placeholder="e.g. Flask, regression, CSS grid"></div>
+    <div><label for="topic">Topic</label><select id="topic" name="topic"><option value="">All topics</option>{% for t in RESOURCE_TOPICS %}<option{% if f.get('topic') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div><label for="price">Access</label><select id="price" name="price"><option value="">Free and premium</option><option value="free"{% if f.get('price') == 'free' %} selected{% endif %}>Free only</option><option value="paid"{% if f.get('price') == 'paid' %} selected{% endif %}>Premium only</option></select></div>
+    <div><label for="sort">Sort by</label><select id="sort" name="sort"><option value="">Newest</option><option value="popular"{% if f.get('sort') == 'popular' %} selected{% endif %}>Most popular</option><option value="price_asc"{% if f.get('sort') == 'price_asc' %} selected{% endif %}>Price: low to high</option></select></div>
+    <div class="btn-cell"><button class="button" type="submit">Search</button><a class="button button-outline" href="{{ url_for('learn') }}">Clear</a></div>
+  </form>
+  <p class="shop-count" aria-live="polite">{{ total }} resource{{ '' if total == 1 else 's' }} found</p>
+  {% if items %}
+  <div class="shop-grid">{% for p in items %}{{ product_card(p) }}{% endfor %}</div>
+  {{ pager(page, pages) }}
+  {% elif f.get('q') or f.get('topic') or f.get('price') %}
+  <div class="empty-state"><h2>No resources match that search</h2><p>Try another topic or clear the filters.</p><a class="button" href="{{ url_for('learn') }}">Show all resources</a></div>
+  {% else %}
+  <div class="empty-state"><h2>Resources are on the way</h2><p>Free notes and guides will appear here soon. Meanwhile, the community shares tips and solved problems every day.</p><a class="button" href="{{ url_for('community') }}">Visit the community</a></div>
+  {% endif %}
+  <p class="legal-note">Every resource here is original or shared with permission from its owner.</p>
+</div>
+{% endblock %}

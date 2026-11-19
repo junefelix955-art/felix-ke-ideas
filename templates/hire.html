@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import err %}
+{% block title %}Hire Me: Website Development | Felix KE Ideas{% endblock %}
+{% block description %}Request a portfolio site, business website, landing page, educational site or simple Flask application from Felix KE Ideas.{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p>
+  <h1>Need a website? Let's build it.</h1>
+  <p>Individuals and small businesses can request a clean, responsive website or a simple web application. Tell me about your project and I'll reply with next steps and a quote.</p>
+  <div class="hero-buttons"><a class="button" href="#request">Request a website</a>
+    {% if whatsapp_number %}<a class="button button-outline" href="https://wa.me/{{ whatsapp_number }}?text={{ 'Hello, I would like a website.'|urlencode }}" target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>{% endif %}</div>
+</section>
+
+<section class="shop-wrap" aria-labelledby="svc-h">
+  <h2 id="svc-h" class="center">What I can build</h2>
+  <div class="shop-grid services">
+    {% for s in services %}
+    <article class="service-card">
+      <h3>{{ s.title }}</h3>
+      <p>{{ s.text }}</p>
+      <ul>{% for pt in s.points %}<li>{{ pt }}</li>{% endfor %}</ul>
+      <p class="service-price">{% if s.price %}From <strong>{{ s.price|money }}</strong>{% else %}<strong>Request a quote</strong>{% endif %}</p>
+      <a class="button button-outline small" href="{{ url_for('hire', type=s.title) }}#request">Request this</a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="shop-wrap" aria-labelledby="ex-h">
+  <h2 id="ex-h" class="center">Example project</h2>
+  <div class="example-list">
+    {% for title, text, link in examples %}
+    <article class="service-card wide"><h3>{% if link %}<a href="{{ link }}">{{ title }}</a>{% else %}{{ title }}{% endif %}</h3><p>{{ text }}</p>
+      {% if not link %}<a href="{{ url_for('index') }}">See it live</a>{% endif %}</article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="shop-wrap request-section" id="request" aria-labelledby="req-h">
+  <div class="request-card">
+    <h2 id="req-h">Request a website</h2>
+    <p>The more detail you give, the better my reply. All fields marked * are required.</p>
+    <form method="POST" action="{{ url_for('hire') }}#request" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="hp-field" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="two-col-form">
+        <div><label for="h-name">Your name *</label><input id="h-name" name="name" type="text" maxlength="100" required autocomplete="name" value="{{ form.get('name', '') }}"{% if errors.get('name') %} aria-invalid="true" aria-describedby="err-name"{% endif %}>{{ err(errors, 'name') }}</div>
+        <div><label for="h-email">Email *</label><input id="h-email" name="email" type="email" maxlength="254" required autocomplete="email" value="{{ form.get('email', '') }}"{% if errors.get('email') %} aria-invalid="true" aria-describedby="err-email"{% endif %}>{{ err(errors, 'email') }}</div>
+        <div><label for="h-phone">Phone / WhatsApp</label><input id="h-phone" name="phone" type="tel" maxlength="25" autocomplete="tel" placeholder="0712 345 678" value="{{ form.get('phone', '') }}"{% if errors.get('phone') %} aria-invalid="true" aria-describedby="err-phone"{% endif %}>{{ err(errors, 'phone') }}</div>
+        <div><label for="h-type">Project type *</label><select id="h-type" name="project_type" required{% if errors.get('project_type') %} aria-invalid="true" aria-describedby="err-project_type"{% endif %}><option value="">Choose one...</option>{% for t in project_types %}<option{% if form.get('project_type') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>{{ err(errors, 'project_type') }}</div>
+        <div><label for="h-budget">Budget range *</label><select id="h-budget" name="budget" required{% if errors.get('budget') %} aria-invalid="true" aria-describedby="err-budget"{% endif %}><option value="">Choose one...</option>{% for b in budgets %}<option{% if form.get('budget') == b %} selected{% endif %}>{{ b }}</option>{% endfor %}</select>{{ err(errors, 'budget') }}</div>
+        <div><label for="h-time">When do you need it?</label><select id="h-time" name="timeline"><option value="">No preference</option>{% for t in timelines %}<option{% if form.get('timeline') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>{{ err(errors, 'timeline') }}</div>
+      </div>
+      <label for="h-desc">Project description *</label>
+      <textarea id="h-desc" name="description" rows="6" maxlength="3000" required placeholder="What is the website for? Who will use it? Any pages, features or examples you like?"{% if errors.get('description') %} aria-invalid="true" aria-describedby="err-description"{% endif %}>{{ form.get('description', '') }}</textarea>
+      {{ err(errors, 'description') }}
+      <button class="button wide" type="submit">Send my request</button>
+      <p class="field-hint">I'll only use your details to reply about this project. See the <a href="{{ url_for('privacy') }}">privacy summary</a>.</p>
+    </form>
+  </div>
+</section>
+{% endblock %}

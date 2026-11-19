@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import err %}
+{% block title %}{{ 'Edit listing' if p else 'New listing' }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container narrow">
+  <div class="admin-top"><div><h1>{{ 'Edit listing' if p else 'New listing' }}</h1><p>Only publish original material, or material you have permission to distribute.</p></div><a class="admin-button admin-button-light" href="{{ url_for('admin_marketplace') }}">&larr; Back to list</a></div>
+  {% include "_admin_nav.html" %}
+  <form method="POST" enctype="multipart/form-data" class="admin-panel admin-form" data-loading>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="f-title">Title *</label>
+    <input id="f-title" name="title" type="text" maxlength="120" required value="{{ form.get('title', '') }}"{% if errors.get('title') %} aria-invalid="true" aria-describedby="err-title"{% endif %}>{{ err(errors, 'title') }}
+    <label for="f-summary">Short summary <span class="optional">(shown on cards, up to 240 characters)</span></label>
+    <input id="f-summary" name="summary" type="text" maxlength="240" value="{{ form.get('summary', '') }}">
+    <label for="f-desc">Description <span class="optional">(plain text; line breaks are kept)</span></label>
+    <textarea id="f-desc" name="description" rows="8" maxlength="4000"{% if errors.get('description') %} aria-invalid="true" aria-describedby="err-description"{% endif %}>{{ form.get('description', '') }}</textarea>{{ err(errors, 'description') }}
+    <div class="two-col-form">
+      <div><label for="f-kind">What is it? *</label>
+        <select id="f-kind" name="kind" required>{% for k, label in kinds %}<option value="{{ k }}"{% if form.get('kind') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ err(errors, 'kind') }}</div>
+      <div><label for="f-cat">Marketplace category *</label>
+        <select id="f-cat" name="category" required><option value="">Choose...</option>{% for c in MARKET_CATEGORIES %}<option{% if form.get('category') == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>{{ err(errors, 'category') }}</div>
+      <div><label for="f-topic">Topic <span class="optional">(learning resources only)</span></label>
+        <select id="f-topic" name="topic"><option value="">None</option>{% for t in RESOURCE_TOPICS %}<option{% if form.get('topic') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>{{ err(errors, 'topic') }}</div>
+      <div><label for="f-price">Price in {{ currency }} <span class="optional">(0 = free)</span></label>
+        <input id="f-price" name="price_kes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" value="{{ form.get('price_kes', '0') }}"{% if errors.get('price_kes') %} aria-invalid="true" aria-describedby="err-price_kes"{% endif %}>{{ err(errors, 'price_kes') }}</div>
+      <div><label for="f-avail">Availability *</label>
+        <select id="f-avail" name="availability">{% for k, label in availability %}<option value="{{ k }}"{% if form.get('availability') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ err(errors, 'availability') }}</div>
+    </div>
+
+    <fieldset class="file-fieldset"><legend>Files</legend>
+      <label for="f-image">Picture <span class="optional">(PNG, JPEG or WebP, up to {{ limits.image }}; 16:10 works best)</span></label>
+      <input id="f-image" name="image" type="file" accept="image/png,image/jpeg,image/webp">{{ err(errors, 'image') }}
+      {% if p and p.image_v %}<label class="check"><input type="checkbox" name="remove_image"> Remove the current picture</label>{% endif %}
+
+      <label for="f-preview">Free preview <span class="optional">(a sample PDF or image, up to {{ limits.preview }}; visitors see it before buying)</span></label>
+      <input id="f-preview" name="preview" type="file" accept="application/pdf,image/png,image/jpeg,image/webp">{{ err(errors, 'preview') }}
+      {% if p and p.preview_size %}<p class="field-hint">Current preview: {{ p.preview_name }}</p><label class="check"><input type="checkbox" name="remove_preview"> Remove the current preview</label>{% endif %}
+
+      <label for="f-file">The product file <span class="optional">(PDF, Word, PowerPoint, Excel, zip, image or text/code, up to {{ limits.file }})</span></label>
+      <input id="f-file" name="file" type="file">{{ err(errors, 'file') }}
+      {% if p and p.has_file %}<p class="field-hint">Current file: {{ p.file_name }} ({{ (p.file_size / 1024)|round|int }} KB). Choose a new one to replace it.</p><label class="check"><input type="checkbox" name="remove_file"> Remove the current file</label>{% endif %}
+      <p class="field-hint">Free items with a file are downloaded straight from the site. Paid files stay locked and are never shown to visitors.</p>
+    </fieldset>
+
+    <div class="check-row">
+      <label class="check"><input type="checkbox" name="published"{% if form.get('published') %} checked{% endif %}> Published (visible to visitors)</label>
+      <label class="check"><input type="checkbox" name="featured"{% if form.get('featured') %} checked{% endif %}> Featured (shown first, and on the home page)</label>
+    </div>
+    <div class="btn-row"><button class="admin-button" type="submit">{{ 'Save changes' if p else 'Create listing' }}</button><a class="admin-button admin-button-light" href="{{ url_for('admin_marketplace') }}">Cancel</a></div>
+  </form>
+</div>
+{% endblock %}

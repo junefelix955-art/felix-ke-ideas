@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600;700&display=swap">
-    <link rel="stylesheet" href="{{ url_for('static', filename='site.css', v='5') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css', v='6') }}">
     <noscript><style>.nav-links{display:flex!important}.nav-toggle{display:none!important}</style></noscript>
     <script>try{var t=localStorage.getItem('theme');document.documentElement.dataset.theme=(t==='light')?'light':'dark';}catch(e){}</script>
 </head>
@@ -26,9 +26,17 @@
         <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">&#9776; Menu</button>
         <div id="nav-links" class="nav-links">
             <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Home</a>
-            <a href="{{ url_for('community') }}" {% if request.endpoint == 'community' %}aria-current="page"{% endif %}>Community</a>
-            <a href="{{ url_for('chat') }}" {% if request.endpoint == 'chat' %}aria-current="page"{% endif %}>Chat</a>
-            <a href="{{ url_for('play') }}" {% if request.endpoint == 'play' %}aria-current="page"{% endif %}>Play</a>
+            <a href="{{ url_for('marketplace') }}" {% if request.endpoint in ('marketplace', 'product_detail', 'order_confirmation') %}aria-current="page"{% endif %}>Marketplace</a>
+            <a href="{{ url_for('learn') }}" {% if request.endpoint == 'learn' %}aria-current="page"{% endif %}>Learn</a>
+            <a href="{{ url_for('hire') }}" {% if request.endpoint in ('hire', 'hire_thanks') %}aria-current="page"{% endif %}>Hire Me</a>
+            <details class="nav-more{% if request.endpoint in ('community', 'chat', 'play') %} active{% endif %}" id="nav-more">
+                <summary>Community</summary>
+                <div class="nav-menu">
+                    <a href="{{ url_for('community') }}" {% if request.endpoint == 'community' %}aria-current="page"{% endif %}>Posts &amp; tips</a>
+                    <a href="{{ url_for('chat') }}" {% if request.endpoint == 'chat' %}aria-current="page"{% endif %}>Group chat</a>
+                    <a href="{{ url_for('play') }}" {% if request.endpoint == 'play' %}aria-current="page"{% endif %}>Maths Sprint</a>
+                </div>
+            </details>
             <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}aria-current="page"{% endif %}>About</a>
             {% if current_user %}
             <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
@@ -61,9 +69,12 @@
 
 <footer class="site-footer">
     <a href="{{ url_for('index') }}" class="footer-brand">Felix KE Ideas.</a>
-    <p>Turning ideas into digital solutions.</p>
+    <p>Code &bull; Learn &bull; Build &bull; Grow</p>
     <div class="footer-links">
         <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('marketplace') }}">Marketplace</a>
+        <a href="{{ url_for('learn') }}">Learn</a>
+        <a href="{{ url_for('hire') }}">Hire Me</a>
         <a href="{{ url_for('community') }}">Community</a>
         <a href="{{ url_for('chat') }}">Chat</a>
         <a href="{{ url_for('play') }}">Play</a>
@@ -81,6 +92,24 @@
     nl.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('a'))nl.classList.remove('open');});}
   function label(){if(tb)tb.textContent=root.dataset.theme==='dark'?'\u2600 Light':'\u263E Dark';}
   if(tb){label();tb.addEventListener('click',function(){root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('theme',root.dataset.theme);}catch(e){}label();});}
+})();
+</script>
+<script>
+(function(){
+  var more=document.getElementById('nav-more');
+  if(more){
+    document.addEventListener('click',function(e){if(more.open&&!more.contains(e.target))more.open=false;});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&more.open){more.open=false;var s=more.querySelector('summary');if(s)s.focus();}});
+  }
+  /* Loading indicator: forms with data-loading disable their button and say "Please wait" while the page loads. */
+  document.addEventListener('submit',function(e){
+    var f=e.target;if(!f.hasAttribute||!f.hasAttribute('data-loading')||e.defaultPrevented)return;
+    var b=f.querySelector('button[type=submit]');if(!b)return;
+    setTimeout(function(){b.dataset.label=b.textContent;b.disabled=true;b.textContent='Please wait\u2026';},0);
+  });
+  window.addEventListener('pageshow',function(){
+    document.querySelectorAll('form[data-loading] button[type=submit]').forEach(function(b){if(b.dataset.label){b.disabled=false;b.textContent=b.dataset.label;delete b.dataset.label;}});
+  });
 })();
 </script>
 {% if current_user %}

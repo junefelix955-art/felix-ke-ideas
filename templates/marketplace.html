@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import product_card, pager %}
+{% block title %}Marketplace | Felix KE Ideas{% endblock %}
+{% block description %}Programming resources, maths and statistics materials, website templates, Excel guides and website development services from Felix KE Ideas.{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p>
+  <h1>Marketplace</h1>
+  <p>Original learning materials, templates and services. Free downloads are one click; premium items are ordered here.</p>
+</section>
+<div class="shop-wrap">
+  <form method="GET" class="shop-filters" role="search" data-loading>
+    <div class="grow"><label for="q">Search</label><input type="search" id="q" name="q" value="{{ f.get('q', '') }}" maxlength="60" placeholder="Title or topic, e.g. Python"></div>
+    <div><label for="category">Category</label><select id="category" name="category"><option value="">All categories</option>{% for c in MARKET_CATEGORIES %}<option{% if f.get('category') == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label for="kind">Type</label><select id="kind" name="kind"><option value="">All types</option><option value="resource"{% if f.get('kind') == 'resource' %} selected{% endif %}>Learning resources</option><option value="product"{% if f.get('kind') == 'product' %} selected{% endif %}>Digital products</option><option value="service"{% if f.get('kind') == 'service' %} selected{% endif %}>Services</option></select></div>
+    <div><label for="price">Price</label><select id="price" name="price"><option value="">Any price</option><option value="free"{% if f.get('price') == 'free' %} selected{% endif %}>Free</option><option value="paid"{% if f.get('price') == 'paid' %} selected{% endif %}>Paid</option></select></div>
+    <div><label for="sort">Sort by</label><select id="sort" name="sort"><option value="">Featured, then newest</option><option value="popular"{% if f.get('sort') == 'popular' %} selected{% endif %}>Most popular</option><option value="price_asc"{% if f.get('sort') == 'price_asc' %} selected{% endif %}>Price: low to high</option><option value="price_desc"{% if f.get('sort') == 'price_desc' %} selected{% endif %}>Price: high to low</option></select></div>
+    <div class="btn-cell"><button class="button" type="submit">Search</button><a class="button button-outline" href="{{ url_for('marketplace') }}">Clear</a></div>
+  </form>
+  <p class="shop-count" aria-live="polite">{{ total }} item{{ '' if total == 1 else 's' }} found</p>
+  {% if items %}
+  <div class="shop-grid">{% for p in items %}{{ product_card(p) }}{% endfor %}</div>
+  {{ pager(page, pages) }}
+  {% elif f.get('q') or f.get('category') or f.get('kind') or f.get('price') %}
+  <div class="empty-state"><h2>Nothing matches that search</h2><p>Try fewer filters or a different word.</p><a class="button" href="{{ url_for('marketplace') }}">Show everything</a></div>
+  {% else %}
+  <div class="empty-state"><h2>The shop is being stocked</h2><p>New learning materials, templates and services are on the way. In the meantime you can ask for a custom website.</p><a class="button" href="{{ url_for('hire') }}">Hire me</a></div>
+  {% endif %}
+</div>
+{% endblock %}

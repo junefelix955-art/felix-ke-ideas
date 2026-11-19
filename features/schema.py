@@ -144,4 +144,46 @@ STATEMENTS = [
         session_id BIGINT NOT NULL REFERENCES study_sessions(id) ON DELETE CASCADE,
         user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         status VARCHAR(8) NOT NULL, PRIMARY KEY (session_id, user_id))""",
+
+    # ---- Business features, phase 1: messages inbox, marketplace, orders, Hire Me inquiries ----
+    "ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN NOT NULL DEFAULT FALSE",
+
+    # One table for everything sold or given away: kind = resource (learning material), product (e.g. templates) or service.
+    # price_kes = 0 means free. Files live in the database (BYTEA) because Render's disk is wiped on every deploy.
+    """CREATE TABLE IF NOT EXISTS products (
+        id BIGSERIAL PRIMARY KEY, slug VARCHAR(90) UNIQUE NOT NULL,
+        title VARCHAR(120) NOT NULL, summary VARCHAR(240) NOT NULL DEFAULT '', description VARCHAR(4000) NOT NULL DEFAULT '',
+        kind VARCHAR(10) NOT NULL DEFAULT 'product', category VARCHAR(40) NOT NULL, topic VARCHAR(40) NOT NULL DEFAULT '',
+        price_kes INT NOT NULL DEFAULT 0, availability VARCHAR(12) NOT NULL DEFAULT 'available',
+        published BOOLEAN NOT NULL DEFAULT FALSE, featured BOOLEAN NOT NULL DEFAULT FALSE,
+        image BYTEA, image_mime VARCHAR(20), image_v INT NOT NULL DEFAULT 0,
+        file_data BYTEA, file_name VARCHAR(100) NOT NULL DEFAULT '', file_mime VARCHAR(120) NOT NULL DEFAULT '',
+        file_kind VARCHAR(10) NOT NULL DEFAULT '', file_size INT NOT NULL DEFAULT 0,
+        preview_data BYTEA, preview_name VARCHAR(100) NOT NULL DEFAULT '', preview_mime VARCHAR(120) NOT NULL DEFAULT '',
+        preview_kind VARCHAR(10) NOT NULL DEFAULT '', preview_size INT NOT NULL DEFAULT 0,
+        views INT NOT NULL DEFAULT 0, downloads INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS products_listing_idx ON products (published, kind, id DESC)",
+
+    # An order is only a record of what a customer asked for. Payment is tracked separately (added in phase 2),
+    # and status 'paid' is only ever set after the payment provider confirms it server-to-server.
+    """CREATE TABLE IF NOT EXISTS orders (
+        id BIGSERIAL PRIMARY KEY, reference VARCHAR(24) UNIQUE NOT NULL, access_token VARCHAR(64) UNIQUE NOT NULL,
+        product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
+        product_title VARCHAR(120) NOT NULL, total_kes INT NOT NULL DEFAULT 0,
+        customer_name VARCHAR(100) NOT NULL, customer_email VARCHAR(254) NOT NULL, customer_phone VARCHAR(25) NOT NULL DEFAULT '',
+        note VARCHAR(1000) NOT NULL DEFAULT '', status VARCHAR(12) NOT NULL DEFAULT 'pending',
+        user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS orders_status_idx ON orders (status, id DESC)",
+    "CREATE INDEX IF NOT EXISTS orders_email_idx ON orders (lower(customer_email))",
+
+    # Hire Me: website development requests
+    """CREATE TABLE IF NOT EXISTS service_inquiries (
+        id BIGSERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(254) NOT NULL, phone VARCHAR(25) NOT NULL DEFAULT '',
+        project_type VARCHAR(60) NOT NULL, budget_range VARCHAR(60) NOT NULL DEFAULT '', timeline VARCHAR(60) NOT NULL DEFAULT '',
+        description VARCHAR(3000) NOT NULL, status VARCHAR(12) NOT NULL DEFAULT 'pending',
+        admin_notes VARCHAR(2000) NOT NULL DEFAULT '', is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS service_inquiries_status_idx ON service_inquiries (status, id DESC)",
 ]
