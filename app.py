@@ -5,6 +5,7 @@ import io
 import hmac
 import secrets
 import time
+import random
 from types import SimpleNamespace
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -113,6 +114,14 @@ def initialize_database():
         connection.execute("""CREATE TABLE IF NOT EXISTS game_scores (
             id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             score INT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        # Weekly Maths Sprint history is additive and preserves all existing scores.
+        connection.execute("""CREATE TABLE IF NOT EXISTS sprint_weekly_results (
+            week_start DATE PRIMARY KEY, week_end DATE NOT NULL,
+            winner_user_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
+            winner_usernames TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+            top_score INT NOT NULL, reviewed BOOLEAN NOT NULL DEFAULT FALSE,
+            archived_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        connection.execute("CREATE INDEX IF NOT EXISTS sprint_weekly_results_review_idx ON sprint_weekly_results (reviewed, week_start DESC)")
         # ---- Phase 1-2: student profiles and notifications (safe on existing data) ----
         for col in (
             "full_name VARCHAR(60) NOT NULL DEFAULT ''",
@@ -208,7 +217,7 @@ def add_headers(response):
     response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(), payment=()"  # camera only for the maths scanner
     if not DEBUG:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"  # HTTPS only (not sent when testing locally)
-    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "admin_reports",
+    if request.endpoint in ("admin", "login", "logout", "delete_message", "export_csv", "signin", "register", "api_chat", "api_scores", "api_sprint_start", "api_sprint_answer", "api_sprint_finish", "admin_reports",
                             "dashboard", "notifications", "api_notifications", "settings", "profile", "my_profile"):
         response.headers["Cache-Control"] = "no-store"  # back button can't reopen the dashboard
     return response
@@ -371,6 +380,7 @@ def admin():
     sql_where = (" WHERE " + " AND ".join(where)) if where else ""
     connection = get_db_connection()
     try:
+        archive_closed_sprint_weeks(connection)
         total_messages = connection.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
         unread_messages = connection.execute("SELECT COUNT(*) FROM messages WHERE NOT is_read").fetchone()[0]
         shown = connection.execute("SELECT COUNT(*) FROM messages" + sql_where, tuple(params)).fetchone()[0]
@@ -379,6 +389,22 @@ def admin():
             " ORDER BY id DESC LIMIT %s OFFSET %s", tuple(params) + (per_page, (page - 1) * per_page)).fetchall()
         overview = business.admin_overview(connection)
         overview.update(growth.admin_overview(connection))
+        weekly_rows = connection.execute(
+            "SELECT u.username, MAX(s.score) AS best_score "
+            "FROM game_scores s JOIN users u ON u.id = s.user_id "
+            "WHERE s.created_at >= date_trunc('week', NOW()) "
+            "GROUP BY u.id, u.username ORDER BY best_score DESC, u.username LIMIT 10"
+        ).fetchall()
+        weekly_top_score = weekly_rows[0][1] if weekly_rows else None
+        weekly_champions = [{"username": r[0], "score": r[1]} for r in weekly_rows if r[1] == weekly_top_score] if weekly_top_score is not None else []
+        sprint_history = connection.execute(
+            "SELECT week_start, week_end, winner_usernames, top_score, reviewed, archived_at "
+            "FROM sprint_weekly_results ORDER BY week_start DESC LIMIT 12"
+        ).fetchall()
+        sprint_unreviewed_count = connection.execute(
+            "SELECT COUNT(*) FROM sprint_weekly_results WHERE NOT reviewed"
+        ).fetchone()[0]
+        connection.commit()  # persist any newly archived weekly result
     finally:
         connection.close()
 
@@ -393,7 +419,29 @@ def admin():
         page=page,
         pages=max(1, -(-shown // per_page)),
         overview=overview,
+        weekly_champions=weekly_champions,
+        sprint_history=sprint_history,
+        sprint_unreviewed_count=sprint_unreviewed_count,
     )
+
+
+@app.route("/admin/sprint-results/<week_start>/review", methods=["POST"])
+@login_required
+def admin_sprint_result_review(week_start):
+    validate_csrf()
+    try:
+        from datetime import date
+        parsed_week = date.fromisoformat(week_start)
+    except ValueError:
+        abort(404)
+    connection = get_db_connection()
+    try:
+        connection.execute("UPDATE sprint_weekly_results SET reviewed = TRUE WHERE week_start = %s", (parsed_week,))
+        connection.commit()
+    finally:
+        connection.close()
+    flash("Weekly Maths Sprint result marked as reviewed.", "success")
+    return redirect(url_for("admin") + "#sprint-history")
 
 
 @app.route("/admin/messages/<int:message_id>/read", methods=["POST"])
@@ -819,31 +867,143 @@ def privacy():
     return render_template("privacy.html")
 
 
-@app.route("/api/scores", methods=["GET", "POST"])
-@limiter.limit("20 per minute", methods=["POST"])
+def archive_closed_sprint_weeks(connection):
+    """Snapshot every completed Monday-to-Monday competition week exactly once."""
+    weeks = connection.execute(
+        "SELECT DISTINCT date_trunc('week', s.created_at)::date FROM game_scores s "
+        "LEFT JOIN sprint_weekly_results r ON r.week_start = date_trunc('week', s.created_at)::date "
+        "WHERE s.created_at < date_trunc('week', NOW()) AND r.week_start IS NULL ORDER BY 1"
+    ).fetchall()
+    for (week_start,) in weeks:
+        rows = connection.execute(
+            "SELECT u.id, u.username, MAX(s.score) AS best_score "
+            "FROM game_scores s JOIN users u ON u.id = s.user_id "
+            "WHERE s.created_at >= %s AND s.created_at < (%s::date + INTERVAL '7 days') "
+            "GROUP BY u.id, u.username ORDER BY best_score DESC, u.username",
+            (week_start, week_start),
+        ).fetchall()
+        if not rows:
+            continue
+        top_score = rows[0][2]
+        winners = [r for r in rows if r[2] == top_score]
+        connection.execute(
+            "INSERT INTO sprint_weekly_results "
+            "(week_start, week_end, winner_user_ids, winner_usernames, top_score) "
+            "VALUES (%s, (%s::date + INTERVAL '6 days')::date, %s, %s, %s) "
+            "ON CONFLICT (week_start) DO NOTHING",
+            (week_start, week_start, [r[0] for r in winners], [r[1] for r in winners], top_score),
+        )
+
+
+def sprint_question(level):
+    """Generate a maths question and its answer on the server."""
+    level = max(1, min(int(level), 5))
+    a, b = random.randint(2, 10 * level + 1), random.randint(2, 10 * level + 1)
+    operation = random.choice(("+", "-", "*") if level >= 3 else ("+", "-"))
+    if operation == "+":
+        answer = a + b
+    elif operation == "-":
+        if b > a:
+            a, b = b, a
+        answer = a - b
+    else:
+        a, b = random.randint(2, 12), random.randint(2, 10)
+        answer = a * b
+    symbol = {"+": "+", "-": "−", "*": "×"}[operation]
+    return {"question": f"{a} {symbol} {b}", "answer": answer}
+
+
+@app.route("/api/scores", methods=["GET"])
 def api_scores():
+    """Read-only leaderboard endpoint. Score writes must use the server-verified sprint flow."""
     uid = session.get("user_id")
     c = get_db_connection()
     try:
-        if request.method == "POST":
-            if not uid:
-                return jsonify(error="Sign in to save scores."), 401
-            validate_csrf()
-            try:
-                score = int((request.get_json(silent=True) or {}).get("score", 0))
-            except (TypeError, ValueError):
-                score = 0
-            if 0 < score <= 100:
-                c.execute("INSERT INTO game_scores (user_id, score) VALUES (%s, %s)", (uid, score))
-                c.commit()
+        archive_closed_sprint_weeks(c)
         q = ("SELECT u.username, MAX(s.score) FROM game_scores s JOIN users u ON u.id = s.user_id{} "
              "GROUP BY u.username ORDER BY 2 DESC, u.username LIMIT 10")
-        week = c.execute(q.format(" WHERE s.created_at > NOW() - INTERVAL '7 days'")).fetchall()
+        week = c.execute(q.format(" WHERE s.created_at >= date_trunc('week', NOW())")).fetchall()
         alltime = c.execute(q.format("")).fetchall()
+        top_score = week[0][1] if week else None
+        week_champions = [{"user": r[0], "score": r[1]} for r in week if r[1] == top_score] if top_score is not None else []
+        previous = c.execute(
+            "SELECT week_start, week_end, winner_usernames, top_score FROM sprint_weekly_results "
+            "ORDER BY week_start DESC LIMIT 1"
+        ).fetchone()
+        c.commit()
     finally:
         c.close()
     pack = lambda rows: [{"user": r[0], "score": r[1]} for r in rows]
-    return jsonify(week=pack(week), all=pack(alltime), signed_in=bool(uid))
+    last_week = None
+    if previous:
+        last_week = {"week_start": previous[0].isoformat(), "week_end": previous[1].isoformat(),
+                     "winners": previous[2], "score": previous[3]}
+    return jsonify(week=pack(week), all=pack(alltime), week_champions=week_champions,
+                   last_week=last_week, signed_in=bool(uid))
+
+
+@app.route("/api/sprint/start", methods=["POST"])
+@limiter.limit("12 per minute", methods=["POST"])
+def api_sprint_start():
+    validate_csrf()
+    run = {"started_at": time.time(), "score": 0, "last_answer_at": 0.0}
+    q = sprint_question(1)
+    run["answer"] = q["answer"]
+    session["sprint_run"] = run
+    return jsonify(question=q["question"], score=0, time_left=30)
+
+
+@app.route("/api/sprint/answer", methods=["POST"])
+@limiter.limit("180 per minute", methods=["POST"])
+def api_sprint_answer():
+    validate_csrf()
+    run = session.get("sprint_run")
+    if not isinstance(run, dict):
+        return jsonify(error="Start a new round first."), 409
+    now = time.time()
+    elapsed = now - float(run.get("started_at", 0))
+    if elapsed >= 30:
+        return jsonify(error="Time is up.", time_left=0, score=int(run.get("score", 0))), 409
+    if now - float(run.get("last_answer_at", 0)) < 0.28:
+        return jsonify(error="Please allow a moment between answers."), 429
+    try:
+        given = int((request.get_json(silent=True) or {}).get("answer"))
+    except (TypeError, ValueError):
+        given = None
+    correct = given is not None and given == int(run.get("answer", -1))
+    if correct:
+        run["score"] = int(run.get("score", 0)) + 1
+    run["last_answer_at"] = now
+    q = sprint_question(1 + int(run["score"]) // 5)
+    run["answer"] = q["answer"]
+    session["sprint_run"] = run
+    return jsonify(correct=correct, question=q["question"], score=int(run["score"]),
+                   time_left=max(0, int(30 - elapsed)))
+
+
+@app.route("/api/sprint/finish", methods=["POST"])
+@limiter.limit("12 per minute", methods=["POST"])
+def api_sprint_finish():
+    uid = session.get("user_id")
+    validate_csrf()
+    run = session.get("sprint_run")
+    if not isinstance(run, dict):
+        return jsonify(error="No active round was found."), 409
+    elapsed = time.time() - float(run.get("started_at", 0))
+    if elapsed < 29.5:
+        return jsonify(error="The round is still running.", time_left=max(1, int(30 - elapsed))), 409
+    score = max(0, min(int(run.get("score", 0)), 120))
+    session.pop("sprint_run", None)
+    saved = False
+    if uid and score > 0:
+        c = get_db_connection()
+        try:
+            c.execute("INSERT INTO game_scores (user_id, score) VALUES (%s, %s)", (uid, score))
+            c.commit()
+            saved = True
+        finally:
+            c.close()
+    return jsonify(score=score, saved=saved, signed_in=bool(uid))
 
 
 @app.route("/play")

@@ -8,6 +8,7 @@
   <h1>Maths Sprint</h1>
   {% if challenge %}<p class="notice" role="status">A friend scored <strong>{{ challenge }}</strong> in 30 seconds. Can you beat it?</p>{% endif %}
   <p>Answer as many sums as you can in 30 seconds. Questions get harder as you score.</p>
+  <p class="post-meta">Weekly recognition: the top score is featured here. Free to play; no entry fee and no cash prize.</p>
   <div class="game-hud"><span>Time <b id="g-time">30</b></span><span>Score <b id="g-score">0</b></span><span>Best <b id="g-best">0</b></span></div>
   <div class="game-q" id="g-q" aria-live="polite">Ready?</div>
   <form id="g-form" autocomplete="off"><input type="text" id="g-ans" inputmode="numeric" pattern="-?[0-9]*" aria-label="Your answer" disabled><button type="submit" class="button" id="g-go">Start</button></form>
@@ -19,6 +20,15 @@
   </div>
 </section>
 <section class="leaderboard">
+  <div class="admin-panel" id="sprint-weekly-spotlight" aria-live="polite">
+    <h2>This week's Sprint spotlight</h2>
+    <p id="lb-champion">Loading this week's leading player…</p>
+    <small>Each competition week runs Monday to Sunday. The leaderboard uses scores checked by the server.</small>
+  </div>
+  <div class="admin-panel" id="sprint-previous-champion" aria-live="polite">
+    <h2>Previous weekly champions</h2>
+    <p id="lb-previous">The previous week's result will appear here after the new week begins.</p>
+  </div>
   <h2>Leaderboard</h2>
   <div class="lb-grid"><div><h3>This week</h3><ol id="lb-week"><li>Loading...</li></ol></div><div><h3>All time</h3><ol id="lb-all"><li>Loading...</li></ol></div></div>
   <p class="post-meta" id="lb-note">{% if current_user %}Your scores are saved automatically.{% else %}<a href="{{ url_for('signin') }}">Sign in</a> to save your scores to the leaderboard.{% endif %}</p>
@@ -27,46 +37,44 @@
 {% block scripts %}
 <script>
 (function(){
-  var $=function(i){return document.getElementById(i);}, score=0, time=30, ans=0, timer=null, best=0;
-  var token=document.querySelector('meta[name="csrf"]').content, api="{{ url_for('api_scores') }}", signed={{ 'true' if current_user else 'false' }};
+  var $=function(i){return document.getElementById(i);}, score=0, time=30, timer=null, best=0, busy=false, ended=false;
+  var token=document.querySelector('meta[name="csrf"]').content;
+  var boardApi="{{ url_for('api_scores') }}", startApi="{{ url_for('api_sprint_start') }}", answerApi="{{ url_for('api_sprint_answer') }}", finishApi="{{ url_for('api_sprint_finish') }}";
+  var signed={{ 'true' if current_user else 'false' }};
   try{best=parseInt(localStorage.getItem("sprintBest"),10)||0;}catch(e){}
   $("g-best").textContent=best;
+  function post(url,data){return fetch(url,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":token},body:JSON.stringify(data||{})}).then(function(r){return r.json().then(function(d){if(!r.ok){var err=new Error(d.error||"Request failed.");err.status=r.status;throw err;}return d;});});}
   function fill(id,rows){var ol=$(id);ol.textContent="";if(!rows.length){var l=document.createElement("li");l.textContent="No scores yet";ol.appendChild(l);return;}
     rows.forEach(function(r){var li=document.createElement("li"),n=document.createElement("span"),s=document.createElement("b");n.textContent=r.user;s.textContent=r.score;li.appendChild(n);li.appendChild(s);ol.appendChild(li);});}
-  function board(opts){fetch(api,opts||{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(d){if(d.week){fill("lb-week",d.week);fill("lb-all",d.all);}}).catch(function(){});}
+  function board(){fetch(boardApi,{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(d){if(d.week){fill("lb-week",d.week);fill("lb-all",d.all);
+    var el=$("lb-champion"), winners=d.week_champions||[];
+    if(!winners.length){el.textContent="No scores yet this week. Be the first to appear on the spotlight!";}
+    else if(winners.length===1){el.textContent=winners[0].user+" is currently leading with "+winners[0].score+" points.";}
+    else{el.textContent="It's a tie! "+winners.map(function(w){return w.user;}).join(", ")+" are leading with "+winners[0].score+" points.";}
+    var prev=$("lb-previous"), last=d.last_week;
+    if(last){prev.textContent=last.winners.join(", ")+" finished as "+(last.winners.length===1?"weekly champion":"joint weekly champions")+" for "+last.week_start+" to "+last.week_end+", with "+last.score+" points.";}
+  }}).catch(function(){var el=$("lb-champion");if(el)el.textContent="The weekly spotlight is temporarily unavailable.";});}
   board();
-  function rnd(n){return Math.floor(Math.random()*n);}
-  function next(){
-    var lv=Math.min(1+Math.floor(score/5),5), a=rnd(10*lv)+2, b=rnd(10*lv)+2, op=rnd(lv>2?3:2);
-    if(op===0){ans=a+b;$("g-q").textContent=a+" + "+b;}
-    else if(op===1){if(b>a){var t=a;a=b;b=t;}ans=a-b;$("g-q").textContent=a+" \u2212 "+b;}
-    else{a=rnd(11)+2;b=rnd(10)+2;ans=a*b;$("g-q").textContent=a+" \u00d7 "+b;}
-    $("g-ans").value="";$("g-ans").focus();
+  function end(){if(ended)return;ended=true;clearInterval(timer);$("g-ans").disabled=true;$("g-go").disabled=true;$("g-q").textContent="Time's up!";
+    post(finishApi,{}).then(function(d){score=d.score;$("g-score").textContent=score;var msg="You scored "+score+".";
+      if(score>best){best=score;$("g-best").textContent=best;msg+=" New best!";try{localStorage.setItem("sprintBest",best);}catch(e){}}
+      if(d.saved){msg+=" Saved to the leaderboard.";}else if(!d.signed_in){msg+=" Sign in to save scores to the leaderboard.";}
+      $("g-msg").textContent=msg;$("g-go").disabled=false;$("g-go").textContent="Play again";board();
+      if(score>0){var link=location.origin+"{{ url_for('play') }}?challenge="+score,text="I scored "+score+" in 30 seconds on Maths Sprint. Can you beat me?";
+        $("g-share-wa").href="https://wa.me/?text="+encodeURIComponent(text+" "+link);$("g-share-copy").setAttribute("data-copy",link);$("g-share").hidden=false;}
+    }).catch(function(err){$("g-msg").textContent=err.message+" Please reload and try another round.";$("g-go").disabled=false;$("g-go").textContent="Play again";});
   }
-  function end(){
-    clearInterval(timer);$("g-ans").disabled=true;$("g-go").textContent="Play again";$("g-q").textContent="Time's up!";
-    var msg="You scored "+score+".";
-    if(score>best){best=score;$("g-best").textContent=best;msg+=" New best!";try{localStorage.setItem("sprintBest",best);}catch(e){}}
-    if(signed&&score>0){board({method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":token},body:JSON.stringify({score:score})});msg+=" Saved to the leaderboard.";}
-    $("g-msg").textContent=msg;
-    if(score>0){
-      var link=location.origin+"{{ url_for('play') }}?challenge="+score,text="I scored "+score+" in 30 seconds on Maths Sprint. Can you beat me?";
-      $("g-share-wa").href="https://wa.me/?text="+encodeURIComponent(text+" "+link);
-      $("g-share-copy").setAttribute("data-copy",link);
-      $("g-share").hidden=false;
-    }
+  function start(){if(busy)return;busy=true;$("g-go").disabled=true;$("g-msg").textContent="Starting round…";
+    post(startApi,{}).then(function(d){score=0;time=30;ended=false;$("g-score").textContent=0;$("g-time").textContent=30;$("g-q").textContent=d.question;$("g-ans").value="";$("g-ans").disabled=false;$("g-go").textContent="Answer";$("g-msg").textContent="";$("g-share").hidden=true;$("g-ans").focus();
+      timer=setInterval(function(){time--;$("g-time").textContent=Math.max(0,time);if(time<=0){clearInterval(timer);if(!busy)end();}},1000);
+    }).catch(function(err){$("g-msg").textContent=err.message;$("g-go").disabled=false;}).finally(function(){busy=false;});
   }
-  function start(){
-    score=0;time=30;$("g-score").textContent=0;$("g-time").textContent=30;$("g-msg").textContent="";
-    $("g-ans").disabled=false;$("g-go").textContent="Answer";next();
-    timer=setInterval(function(){time--;$("g-time").textContent=time;if(time<=0)end();},1000);
-  }
-  $("g-form").addEventListener("submit",function(e){
-    e.preventDefault();
-    if($("g-ans").disabled){start();return;}
-    if(parseInt($("g-ans").value,10)===ans){score++;$("g-score").textContent=score;$("g-msg").textContent="";}
-    else{$("g-msg").textContent="Not quite. Keep going!";}
-    next();
+  $("g-form").addEventListener("submit",function(e){e.preventDefault();if(ended)return;if($("g-ans").disabled){start();return;}if(busy)return;
+    var value=$("g-ans").value.trim();if(!/^-?\d+$/.test(value)){$("g-msg").textContent="Enter a whole-number answer.";return;}
+    busy=true;$("g-go").disabled=true;
+    post(answerApi,{answer:value}).then(function(d){score=d.score;$("g-score").textContent=score;$("g-q").textContent=d.question;$("g-ans").value="";$("g-msg").textContent=d.correct?"Correct!":"Not quite. Keep going!";$("g-ans").focus();})
+      .catch(function(err){if(err.status===409){end();}else{$("g-msg").textContent=err.message;}})
+      .finally(function(){busy=false;if(!ended){if(time<=0)end();else $("g-go").disabled=false;}});
   });
 })();
 </script>

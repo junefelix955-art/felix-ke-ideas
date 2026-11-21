@@ -20,6 +20,38 @@
   </div>
 
   <div class="admin-panel">
+    <h2>Weekly Maths Sprint spotlight</h2>
+    {% if weekly_champions %}
+      {% if weekly_champions|length == 1 %}
+        <p><strong>{{ weekly_champions[0].username }}</strong> is currently leading with <strong>{{ weekly_champions[0].score }}</strong> points this week.</p>
+      {% else %}
+        <p>There is currently a tie at <strong>{{ weekly_champions[0].score }}</strong> points:</p>
+        <ul>{% for winner in weekly_champions %}<li><strong>{{ winner.username }}</strong></li>{% endfor %}</ul>
+      {% endif %}
+      <p class="post-meta">This is a live weekly leaderboard update. Recognition only; there is no cash prize or entry fee.</p>
+    {% else %}
+      <p>No Maths Sprint scores have been recorded this week yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="admin-panel" id="sprint-history">
+    <h2>Weekly Maths Sprint results {% if sprint_unreviewed_count %}<small class="count">{{ sprint_unreviewed_count }} awaiting review</small>{% endif %}</h2>
+    <p class="post-meta">Completed weeks are archived automatically the first time the site is visited after a new week begins. Review each result here.</p>
+    {% if sprint_history %}
+      <div class="admin-table-wrapper"><table class="admin-table">
+        <thead><tr><th>Competition week</th><th>Champion(s)</th><th>Top score</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>{% for result in sprint_history %}
+          <tr>
+            <td>{{ result[0].strftime('%d %b %Y') }} – {{ result[1].strftime('%d %b %Y') }}</td>
+            <td>{{ result[2]|join(', ') }}</td><td><strong>{{ result[3] }}</strong></td>
+            <td>{% if result[4] %}<span class="badge">Reviewed</span>{% else %}<span class="badge warn">Needs review</span>{% endif %}</td>
+            <td>{% if not result[4] %}<form method="POST" action="{{ url_for('admin_sprint_result_review', week_start=result[0].isoformat()) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="admin-button admin-button-light small">Mark reviewed</button></form>{% else %}—{% endif %}</td>
+          </tr>
+        {% endfor %}</tbody></table></div>
+    {% else %}<p class="admin-empty">No completed weekly results have been archived yet.</p>{% endif %}
+  </div>
+
+  <div class="admin-panel">
     <h2>Messages <small class="count">{{ total_messages }} total</small></h2>
     <form action="{{ url_for('admin') }}" method="GET" class="admin-search-form">
       <input type="text" name="search" placeholder="Search name, email or message" value="{{ search_term }}" aria-label="Search messages">

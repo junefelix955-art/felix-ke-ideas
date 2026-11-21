@@ -90,3 +90,16 @@ Never put these in the code or in Git. `Admin > Payments` shows whether M-Pesa i
 ## Things for you to edit (top of `features/growth.py`)
 - `LESSON_PRICE_KES`: no tutoring prices are invented; lessons show "Price on request" until you add one.
 - `IN_PERSON_NOTE`, `LESSONS` (descriptions and objectives), `PLACEMENTS` and `AD_BUDGETS`: check the wording matches what you actually offer.
+
+
+## Maths Sprint weekly competition (November 2026)
+
+- Sprint questions and answers are now generated and checked on the server; browsers can no longer submit an arbitrary leaderboard score through the old score-write endpoint.
+- A signed session tracks each 30-second round. The server accepts answers against the active question and records the resulting score when the round finishes.
+- Weekly competition periods use Monday-to-Monday calendar weeks (UTC).
+- On the first leaderboard or admin request after a week closes, the site snapshots that week's highest score and all tied champions into `sprint_weekly_results`. The insert is idempotent, and existing `game_scores` rows are not modified or deleted.
+- The admin dashboard displays current leaders, archived weekly champions, and an action to mark each archived result as reviewed.
+- The public Maths Sprint page displays the previous archived champions.
+- This is a free, skill-based recognition feature. It does not offer cash prizes, paid entry, or payment collection.
+
+The new table is created additively during the existing database initialization. No existing tables are dropped or reset.
