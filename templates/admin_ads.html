@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager, status_badge %}
+{% block title %}Advertising enquiries | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Advertising enquiries</h1><p>Requests from the Advertise page. {{ total }} found.</p></div></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <form method="GET" class="admin-search-form" role="search">
+      <input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Name, organisation, email" aria-label="Search enquiries">
+      <select name="status" aria-label="Status"><option value="">Any status</option>{% for k, label in statuses %}<option value="{{ k }}"{% if f.get('status') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <select name="placement" aria-label="Placement"><option value="">Any placement</option>{% for p in placements %}<option{% if f.get('placement') == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select>
+      <label class="inline-label">From <input type="date" name="from" value="{{ f.get('from', '') }}"></label>
+      <label class="inline-label">To <input type="date" name="to" value="{{ f.get('to', '') }}"></label>
+      <label class="check inline-check"><input type="checkbox" name="unread" value="1"{% if f.get('unread') %} checked{% endif %}> Unread only</label>
+      <button class="admin-button" type="submit">Filter</button><a class="admin-button admin-button-light" href="{{ url_for('admin_ads') }}">Clear</a>
+    </form>
+  </div>
+  <div class="admin-panel">
+    {% if items %}
+    <div class="admin-table-wrapper"><table class="admin-table">
+      <thead><tr><th>Received</th><th>Advertiser</th><th>Placement</th><th>Budget</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>{% for i in items %}<tr{% if not i.is_read %} class="unread-row"{% endif %}>
+        <td>{{ i.created_at|site_time }}{% if not i.is_read %}<br><span class="badge warn">New</span>{% endif %}</td>
+        <td><strong>{{ i.org }}</strong><br>{{ i.name }}<br><small>{{ i.email }}</small></td>
+        <td>{{ i.placement }}</td><td>{{ i.budget }}</td>
+        <td>{{ status_badge(AD_LABEL.get(i.status, i.status), {'new': 'pending', 'reviewing': 'in_progress', 'approved': 'completed', 'declined': 'cancelled'}.get(i.status, i.status)) }}</td>
+        <td><div class="admin-actions"><a class="admin-button admin-button-light small" href="{{ url_for('admin_ad', aid=i.id) }}">Open</a>
+          <form method="POST" action="{{ url_for('admin_ad_read', aid=i.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button class="admin-button admin-button-light small" type="submit">{{ 'Mark unread' if i.is_read else 'Mark read' }}</button></form></div></td>
+      </tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% elif f.get('q') or f.get('status') or f.get('placement') or f.get('unread') or f.get('from') or f.get('to') %}<p class="admin-empty">No enquiries match. <a href="{{ url_for('admin_ads') }}">Clear filters</a>.</p>
+    {% else %}<p class="admin-empty">No advertising enquiries yet.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

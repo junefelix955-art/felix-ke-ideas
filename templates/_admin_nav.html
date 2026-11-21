@@ -3,7 +3,12 @@
   <a href="{{ url_for('admin') }}"{% if ep in ('admin', ) %} aria-current="page"{% endif %}>Messages</a>
   <a href="{{ url_for('admin_marketplace') }}"{% if ep.startswith('admin_product') or ep == 'admin_marketplace' %} aria-current="page"{% endif %}>Marketplace</a>
   <a href="{{ url_for('admin_orders') }}"{% if ep.startswith('admin_order') %} aria-current="page"{% endif %}>Orders</a>
+  <a href="{{ url_for('admin_payments') }}"{% if ep.startswith('admin_payment') %} aria-current="page"{% endif %}>Payments</a>
+  <a href="{{ url_for('admin_users') }}"{% if ep in ('admin_users', 'admin_reset_link') %} aria-current="page"{% endif %}>Customers</a>
   <a href="{{ url_for('admin_inquiries') }}"{% if ep.startswith('admin_inquir') %} aria-current="page"{% endif %}>Website requests</a>
+  <a href="{{ url_for('admin_bookings') }}"{% if ep.startswith('admin_booking') %} aria-current="page"{% endif %}>Tutoring</a>
+  <a href="{{ url_for('admin_ads') }}"{% if ep.startswith('admin_ad') %} aria-current="page"{% endif %}>Advertising</a>
+  <a href="{{ url_for('admin_updates') }}"{% if ep in ('admin_updates', 'admin_subscribers') %} aria-current="page"{% endif %}>Updates</a>
   <a href="{{ url_for('admin_reports') }}"{% if ep == 'admin_reports' %} aria-current="page"{% endif %}>Moderation</a>
   <form action="{{ url_for('logout') }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Log out</button></form>
 </nav>

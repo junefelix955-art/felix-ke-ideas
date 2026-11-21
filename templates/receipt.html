@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Receipt {{ o.reference }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<section class="receipt" id="receipt">
+  <h1>Payment receipt</h1>
+  <p class="receipt-brand">Felix KE Ideas &middot; Code &bull; Learn &bull; Build &bull; Grow</p>
+  <dl class="order-facts left">
+    <div><dt>Order reference</dt><dd>{{ o.reference }}</dd></div>
+    <div><dt>Customer</dt><dd>{{ o.name }}</dd></div>
+    <div><dt>Item</dt><dd>{{ o.title }}</dd></div>
+    <div><dt>Amount paid</dt><dd>{{ amount|money }}</dd></div>
+    <div><dt>Payment method</dt><dd>M-Pesa{% if phone %} ({{ phone }}){% endif %}</dd></div>
+    {% if receipt %}<div><dt>M-Pesa receipt no.</dt><dd>{{ receipt }}</dd></div>{% endif %}
+    {% if paid_at %}<div><dt>Paid on</dt><dd>{{ paid_at|site_time }}</dd></div>{% endif %}
+    <div><dt>Status</dt><dd>Paid (verified with M-Pesa)</dd></div>
+  </dl>
+  <p class="field-hint">Keep this receipt as proof of purchase.</p>
+  <div class="btn-row no-print"><button class="button" type="button" onclick="window.print()">Print / save as PDF</button>
+    <a class="button button-outline" href="{{ url_for('order_confirmation', token=request.view_args.token) }}">Back to order</a></div>
+</section>
+{% endblock %}

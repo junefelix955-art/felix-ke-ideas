@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager %}
+{% block title %}My downloads | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="shop-wrap">
+  <h1>My downloads</h1>
+  <p>{{ total }} download{{ '' if total == 1 else 's' }} of purchased items. <a href="{{ url_for('account_orders') }}">My orders</a></p>
+  {% if items %}
+  <div class="admin-table-wrapper"><table class="admin-table">
+    <thead><tr><th>Item</th><th>Downloaded</th><th>Order</th><th></th></tr></thead>
+    <tbody>{% for d in items %}<tr>
+      <td>{% if d.slug %}<a href="{{ url_for('product_detail', slug=d.slug) }}">{{ d.title }}</a>{% else %}{{ d.title }}{% endif %}</td>
+      <td>{{ d.when|site_time }}</td><td>{{ d.reference or '' }}</td>
+      <td>{% if d.slug %}<a class="button button-outline small" href="{{ url_for('product_download', slug=d.slug) }}">Download again</a>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {{ pager(page, pages) }}
+  {% else %}
+  <div class="empty-state"><h2>No downloads yet</h2><p>Files you download from paid orders are listed here, and you can download them again any time.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

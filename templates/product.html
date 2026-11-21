@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_shop_macros.html" import thumb, avail, product_card, err %}
+{% from "_share.html" import share %}
 {% block title %}{{ p.title }} | Felix KE Ideas{% endblock %}
 {% block description %}{{ p.summary or p.title }}{% endblock %}
 {% block robots %}{% if not p.published %}<meta name="robots" content="noindex, nofollow">{% endif %}{% endblock %}
@@ -20,7 +21,7 @@
       {% endif %}
     </div>
     <div class="product-info">
-      <p class="shop-tags"><span class="badge">{{ p.kind_label }}</span><span class="badge">{{ p.category }}</span>{% if p.topic %}<span class="badge">{{ p.topic }}</span>{% endif %}</p>
+      <p class="shop-tags">{% if p.sponsored %}<span class="badge sponsored">Sponsored</span>{% endif %}<span class="badge">{{ p.kind_label }}</span><span class="badge">{{ p.category }}</span>{% if p.topic %}<span class="badge">{{ p.topic }}</span>{% endif %}</p>
       <h1>{{ p.title }}</h1>
       {% if p.summary %}<p class="lead">{{ p.summary }}</p>{% endif %}
       <p class="price-line"><strong class="price big{% if p.is_free %} free{% endif %}">{{ p.price_kes|money }}</strong> {{ avail(p) }}</p>
@@ -30,8 +31,13 @@
         {% if p.downloads %}<li>{{ p.downloads }} download{{ '' if p.downloads == 1 else 's' }}</li>{% endif %}
       </ul>
 
+      {% if p.published %}{{ share(url_for('product_detail', slug=p.slug, _external=True), p.title ~ ' on Felix KE Ideas', 'Share this ' ~ ('resource' if p.kind == 'resource' else 'item')) }}{% endif %}
       <section class="buy-box" id="order" aria-labelledby="buy-h">
-        {% if p.can_download %}
+        {% if owned %}
+          <h2 id="buy-h">You own this</h2>
+          <p>Your payment was confirmed.</p>
+          <a class="button" href="{{ url_for('product_download', slug=p.slug) }}">Download again</a> <a class="button button-outline" href="{{ url_for('account_orders') }}">My orders</a>
+        {% elif p.can_download %}
           <h2 id="buy-h">Free download</h2>
           <p>No account or payment needed.</p>
           <a class="button" href="{{ url_for('product_download', slug=p.slug) }}">Download now</a>
@@ -40,7 +46,7 @@
           {{ err(errors, 'product') }}<p>This item can't be ordered right now. <a href="{{ url_for('contact') }}">Ask me when it will be back</a>.</p>
         {% else %}
           <h2 id="buy-h">{{ 'Request this service' if p.kind == 'service' else 'Order this item' }}</h2>
-          <p>Total: <strong>{{ p.price_kes|money }}</strong>. No payment is taken on this page. You'll get an order reference right away, and I'll contact you with payment instructions{% if p.has_file %} and your download{% endif %}.</p>
+          <p>Total: <strong>{{ p.price_kes|money }}</strong>. No payment is taken on this page. You get an order reference right away; on the next page you can pay with M-Pesa when it's available, otherwise I'll contact you with payment instructions{% if p.has_file %}. Your download unlocks once payment is confirmed{% endif %}.</p>
           <form method="POST" action="{{ url_for('product_order', slug=p.slug) }}" data-loading>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="hp-field" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>

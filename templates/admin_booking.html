@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import status_badge %}
+{% block title %}Tutoring request from {{ b.name }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container narrow">
+  <div class="admin-top"><div><h1>Tutoring request</h1><p>Received {{ b.created_at|site_time }} &middot; {{ status_badge(BOOKING_LABEL.get(b.status, b.status), {'confirmed': 'completed', 'rescheduled': 'in_progress'}.get(b.status, b.status)) }}</p></div><a class="admin-button admin-button-light" href="{{ url_for('admin_bookings') }}">&larr; All requests</a></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <dl class="order-facts left">
+      <div><dt>Student</dt><dd>{{ b.name }}</dd></div>
+      <div><dt>Email</dt><dd><a href="mailto:{{ b.email }}">{{ b.email }}</a></dd></div>
+      {% if b.phone %}<div><dt>Phone</dt><dd><a href="tel:{{ b.phone }}">{{ b.phone }}</a></dd></div>{% endif %}
+      <div><dt>Subject</dt><dd>{{ b.subject }} ({{ b.level }})</dd></div>
+      <div><dt>Format</dt><dd>{{ MODE_LABEL.get(b.mode, b.mode) }}, {{ b.duration }} minutes</dd></div>
+      <div><dt>Preferred</dt><dd>{% if b.pref_date %}{{ b.pref_date|fmt_date }}{% else %}No date given{% endif %}{% if b.pref_time %}, {{ b.pref_time }}{% endif %}</dd></div>
+    </dl>
+    {% if b.notes %}<h2>Their goals</h2><p class="admin-message-text wide-text">{{ b.notes }}</p>{% endif %}
+    <h2>Contact the student</h2>
+    <div class="btn-row">
+      <a class="admin-button" href="mailto:{{ b.email }}?subject={{ ('Your ' ~ b.subject ~ ' tutoring session')|urlencode }}">Reply by email</a>
+      {% if b.phone %}<a class="admin-button admin-button-light" href="https://wa.me/{{ b.phone|wa_digits }}?text={{ ('Hello ' ~ b.name ~ ', about your ' ~ b.subject ~ ' tutoring request on Felix KE Ideas.')|urlencode }}" target="_blank" rel="noopener noreferrer">WhatsApp</a><a class="admin-button admin-button-light" href="tel:{{ b.phone }}">Call</a>{% endif %}
+    </div>
+  </div>
+  <form method="POST" action="{{ url_for('admin_booking_update', bid=b.id) }}" class="admin-panel admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Confirm, reschedule or cancel</h2>
+    <label for="b-status">Status</label>
+    <select id="b-status" name="status">{% for k, label in statuses %}<option value="{{ k }}"{% if b.status == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <div class="two-col-form">
+      <div><label for="b-date">Session date <span class="optional">(required to confirm or reschedule)</span></label><input id="b-date" name="session_date" type="date" value="{{ b.session_date|iso_date }}"></div>
+      <div><label for="b-time">Session time</label><input id="b-time" name="session_time" type="text" maxlength="30" placeholder="e.g. 4:00 pm" value="{{ b.session_time }}"></div>
+    </div>
+    <label for="b-notes">Private notes <span class="optional">(only you can see these)</span></label>
+    <textarea id="b-notes" name="notes" rows="4" maxlength="1000">{{ b.admin_notes }}</textarea>
+    <p class="field-hint">Saving does not email the student. Use the buttons above to tell them the time.</p>
+    <div class="btn-row"><button class="admin-button" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock %}

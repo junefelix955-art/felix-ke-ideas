@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from flask import render_template, request, redirect, url_for, session, flash, abort, Response
 
 from . import common as fc
+from . import payments
 
 # ---------------------------------------------------------------- settings you may want to edit
 CURRENCY = (os.getenv("CURRENCY", "KES").strip() or "KES")[:5]
@@ -78,10 +79,10 @@ REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O/1/I/L, easy to read o
 
 COLS = ("p.id, p.slug, p.title, p.summary, p.kind, p.category, p.topic, p.price_kes, p.availability, p.featured, "
         "p.image_v, p.file_size, p.preview_size, p.views, p.downloads, p.published, p.created_at, p.updated_at, "
-        "p.file_kind, p.preview_kind")
+        "p.file_kind, p.preview_kind, p.sponsored")
 KEYS = ("id", "slug", "title", "summary", "kind", "category", "topic", "price_kes", "availability", "featured",
         "image_v", "file_size", "preview_size", "views", "downloads", "published", "created_at", "updated_at",
-        "file_kind", "preview_kind")
+        "file_kind", "preview_kind", "sponsored")
 
 
 # ---------------------------------------------------------------- small helpers
@@ -230,6 +231,9 @@ def admin_overview(c):
         "open_orders": one("SELECT COUNT(*) FROM orders WHERE status = 'pending'"),
         "inquiries": one("SELECT COUNT(*) FROM service_inquiries"),
         "new_inquiries": one("SELECT COUNT(*) FROM service_inquiries WHERE NOT is_read"),
+        "paid_orders": one("SELECT COUNT(*) FROM orders WHERE status = 'paid'"),
+        "revenue": payments.verified_revenue(c),  # only payments Safaricom confirmed; never estimates
+        "to_review": one("SELECT COUNT(*) FROM payments WHERE status = 'duplicate'"),
     }
 
 
@@ -322,12 +326,13 @@ def register(app, h):
                 c.execute("UPDATE products SET views = views + 1 WHERE id = %s", (p["id"],))
                 c.commit()
                 session["_pv"] = (seen + [p["id"]])[-30:]
+            owned = bool(payments.owned_order(c, session.get("user_id"), p["id"]))
             related = [product_dict(r) for r in c.execute(
                 "SELECT " + COLS + " FROM products p WHERE p.published AND p.category = %s AND p.id <> %s "
                 "ORDER BY p.id DESC LIMIT 3", (p["category"], p["id"])).fetchall()]
         finally:
             c.close()
-        return render_template("product.html", p=p, related=related, form=form or {}, errors=errors or {}), status
+        return render_template("product.html", p=p, related=related, owned=owned, form=form or {}, errors=errors or {}), status
 
     @app.route("/marketplace/<slug>")
     def product_detail(slug):
@@ -367,18 +372,21 @@ def register(app, h):
     def product_download(slug):
         c = h.get_db_connection()
         try:
-            row = c.execute("SELECT id, published, price_kes, file_data, file_name, file_mime, file_kind FROM products "
+            row = c.execute("SELECT id, published, price_kes, file_data, file_name, file_mime, file_kind, title FROM products "
                             "WHERE slug = %s", (slug,)).fetchone()
             if not row or not private_ok(row[1]):
                 abort(404)
             admin = session.get("admin_logged_in")
-            if row[2] > 0 and not admin:
-                # Premium file: stays locked until phase 2 connects verified payments.
+            order_id = payments.owned_order(c, session.get("user_id"), row[0]) if row[2] > 0 else None
+            if row[2] > 0 and not admin and not order_id:
+                # Premium file: only a VERIFIED-paid order unlocks it.
                 flash("This is a premium resource. Place an order to get access.", "error")
                 return redirect(url_for("product_detail", slug=slug))
             if not row[3]:
                 abort(404)
-            if not admin:
+            if order_id:
+                payments.log_download(c, order_id, row[0], session.get("user_id"), row[7])
+            elif not admin:
                 c.execute("UPDATE products SET downloads = downloads + 1 WHERE id = %s", (row[0],))
                 c.commit()
         finally:
@@ -441,22 +449,6 @@ def register(app, h):
             c.close()
         return redirect(url_for("order_confirmation", token=token))
 
-    @app.route("/order/<token>")
-    def order_confirmation(token):
-        if not re.fullmatch(r"[A-Za-z0-9_-]{20,64}", token):
-            abort(404)
-        c = h.get_db_connection()
-        try:
-            row = c.execute("SELECT o.reference, o.product_title, o.total_kes, o.status, o.customer_name, o.customer_email, "
-                            "o.created_at, p.slug FROM orders o LEFT JOIN products p ON p.id = o.product_id "
-                            "WHERE o.access_token = %s", (token,)).fetchone()
-        finally:
-            c.close()
-        if not row:
-            abort(404)
-        order = dict(zip(("reference", "title", "total", "status", "name", "email", "created_at", "slug"), row))
-        return render_template("order_confirmation.html", o=order)
-
     # ------------------------------------------------------------ public: Hire Me
     @app.route("/hire", methods=["GET", "POST"])
     @h.limiter.limit("5 per minute;20 per hour", methods=["POST"])
@@ -516,7 +508,8 @@ def register(app, h):
              "description": (f.get("description") or "").replace("\r\n", "\n").strip(),
              "kind": f.get("kind", ""), "category": f.get("category", ""), "topic": f.get("topic", ""),
              "availability": f.get("availability", ""), "price": f.get("price_kes", "").strip(),
-             "published": checked(f, "published"), "featured": checked(f, "featured")}
+             "published": checked(f, "published"), "featured": checked(f, "featured"),
+             "sponsored": checked(f, "sponsored")}
         errors = {}
         if len(v["title"]) < 3:
             errors["title"] = "Give it a title (at least 3 characters)."
@@ -657,10 +650,10 @@ def register(app, h):
         try:
             slug = unique_slug(c, v["title"])
             pid = c.execute(
-                "INSERT INTO products (slug, title, summary, description, kind, category, topic, price_kes, availability, published, featured) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                "INSERT INTO products (slug, title, summary, description, kind, category, topic, price_kes, availability, published, featured, sponsored) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
                 (slug, v["title"], v["summary"], v["description"], v["kind"], v["category"], v["topic"], v["price_int"],
-                 v["availability"], v["published"], v["featured"])).fetchone()[0]
+                 v["availability"], v["published"], v["featured"], v["sponsored"])).fetchone()[0]
             apply_file_changes(c, pid, changes)
             c.commit()
         finally:
@@ -678,7 +671,7 @@ def register(app, h):
                 return product_form(existing=p, form={"title": p["title"], "summary": p["summary"], "description": p["description"],
                                                       "kind": p["kind"], "category": p["category"], "topic": p["topic"],
                                                       "availability": p["availability"], "price_kes": str(p["price_kes"]),
-                                                      "published": p["published"], "featured": p["featured"]})
+                                                      "published": p["published"], "featured": p["featured"], "sponsored": p["sponsored"]})
             h.validate_csrf()
             v, errors = read_product_form(request.form)
             changes = read_product_files(request.form, errors, existing=True)
@@ -689,9 +682,9 @@ def register(app, h):
                 flash("Please fix the highlighted fields. (Choose any files again.)", "error")
                 return product_form(existing=p, form=request.form.to_dict(), errors=errors, status=400)
             c.execute("UPDATE products SET title = %s, summary = %s, description = %s, kind = %s, category = %s, topic = %s, "
-                      "price_kes = %s, availability = %s, published = %s, featured = %s, updated_at = NOW() WHERE id = %s",
+                      "price_kes = %s, availability = %s, published = %s, featured = %s, sponsored = %s, updated_at = NOW() WHERE id = %s",
                       (v["title"], v["summary"], v["description"], v["kind"], v["category"], v["topic"], v["price_int"],
-                       v["availability"], v["published"], v["featured"], pid))
+                       v["availability"], v["published"], v["featured"], v["sponsored"], pid))
             apply_file_changes(c, pid, changes)
             c.commit()
         finally:
@@ -753,12 +746,14 @@ def register(app, h):
             total = c.execute("SELECT COUNT(*) FROM orders o" + sql_where, tuple(params)).fetchone()[0]
             rows = c.execute(
                 "SELECT o.id, o.reference, o.product_title, o.total_kes, o.status, o.customer_name, o.customer_email, "
-                "o.customer_phone, o.note, o.created_at, p.slug FROM orders o LEFT JOIN products p ON p.id = o.product_id"
+                "o.customer_phone, o.note, o.created_at, p.slug, "
+                "(SELECT pm.receipt FROM payments pm WHERE pm.order_id = o.id AND pm.status = 'success' LIMIT 1) "
+                "FROM orders o LEFT JOIN products p ON p.id = o.product_id"
                 + sql_where + " ORDER BY o.id DESC LIMIT %s OFFSET %s",
                 tuple(params) + (ADMIN_PER_PAGE, (page - 1) * ADMIN_PER_PAGE)).fetchall()
         finally:
             c.close()
-        keys = ("id", "reference", "title", "total", "status", "name", "email", "phone", "note", "created_at", "slug")
+        keys = ("id", "reference", "title", "total", "status", "name", "email", "phone", "note", "created_at", "slug", "receipt")
         return render_template("admin_orders.html", orders=[dict(zip(keys, r)) for r in rows], total=total, page=page,
                                pages=page_count(total, ADMIN_PER_PAGE), f=a, statuses=list(ORDER_LABEL.items()),
                                settable=ORDER_ADMIN_SETTABLE)

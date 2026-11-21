@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager %}
+{% block title %}Updates | Felix KE Ideas{% endblock %}
+{% block description %}News, new resources and announcements from Felix KE Ideas.{% endblock %}
+{% block content %}
+<section class="page-hero"><p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p><h1>Updates and announcements</h1>
+  <p>New resources, lessons and news.{% if channel_url %} For updates as they happen, follow the <a href="{{ channel_url }}" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a>.{% endif %}</p></section>
+<div class="shop-wrap narrow-list">
+  {% if items %}
+  {% for u in items %}
+  <article class="update-card"><p class="post-meta">{{ u.created_at|site_time('%d %b %Y') }}</p><h2>{{ u.title }}</h2>{% if u.body %}<p class="admin-message-text">{{ u.body }}</p>{% endif %}
+    {% if u.link %}<a class="button button-outline small" href="{{ u.link }}"{% if u.link.startswith('https://') %} target="_blank" rel="noopener noreferrer"{% endif %}>Read more</a>{% endif %}</article>
+  {% endfor %}
+  {{ pager(page, pages) }}
+  {% else %}<div class="empty-state"><h2>No announcements yet</h2><p>Check back soon{% if channel_url %}, or follow the WhatsApp Channel{% endif %}.</p>{% if channel_url %}<a class="button" href="{{ channel_url }}" target="_blank" rel="noopener noreferrer">Open WhatsApp Channel</a>{% endif %}</div>{% endif %}
+</div>
+{% endblock %}

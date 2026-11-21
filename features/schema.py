@@ -186,4 +186,59 @@ STATEMENTS = [
         admin_notes VARCHAR(2000) NOT NULL DEFAULT '', is_read BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
     "CREATE INDEX IF NOT EXISTS service_inquiries_status_idx ON service_inquiries (status, id DESC)",
+
+    # ---- Business features, phase 2: payments, download history, password-reset links ----
+    # One row per M-Pesa attempt. status: initiated | success | failed | duplicate (a second verified payment for an order that
+    # was already paid: money to refund). 'success' is only ever written after Safaricom confirms it server-to-server.
+    """CREATE TABLE IF NOT EXISTS payments (
+        id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id),
+        provider VARCHAR(12) NOT NULL DEFAULT 'mpesa', amount_kes INT NOT NULL, phone VARCHAR(15) NOT NULL,
+        status VARCHAR(12) NOT NULL DEFAULT 'initiated',
+        merchant_request_id VARCHAR(64), checkout_request_id VARCHAR(64) UNIQUE,
+        claimed_receipt VARCHAR(30), receipt VARCHAR(30) UNIQUE,
+        result_code INT, result_desc VARCHAR(200) NOT NULL DEFAULT '', last_checked TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), paid_at TIMESTAMPTZ)""",
+    # The database itself refuses a second 'success' for the same order.
+    "CREATE UNIQUE INDEX IF NOT EXISTS payments_one_success_per_order ON payments (order_id) WHERE status = 'success'",
+    "CREATE INDEX IF NOT EXISTS payments_status_idx ON payments (status, id DESC)",
+    """CREATE TABLE IF NOT EXISTS download_log (
+        id BIGSERIAL PRIMARY KEY, order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+        product_id BIGINT REFERENCES products(id) ON DELETE SET NULL, user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        product_title VARCHAR(120) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS download_log_user_idx ON download_log (user_id, id DESC)",
+    # Accounts have no email, so a forgotten password is reset with a one-time link the admin generates (stored hashed).
+    """CREATE TABLE IF NOT EXISTS password_resets (
+        id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(64) UNIQUE NOT NULL, expires_at TIMESTAMPTZ NOT NULL, used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+
+    # ---- Business features, phase 3: tutoring, advertising, newsletter, announcements ----
+    "ALTER TABLE products ADD COLUMN IF NOT EXISTS sponsored BOOLEAN NOT NULL DEFAULT FALSE",
+    """CREATE TABLE IF NOT EXISTS tutoring_bookings (
+        id BIGSERIAL PRIMARY KEY, user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        name VARCHAR(100) NOT NULL, email VARCHAR(254) NOT NULL, phone VARCHAR(25) NOT NULL DEFAULT '',
+        subject VARCHAR(60) NOT NULL, level VARCHAR(20) NOT NULL DEFAULT '', mode VARCHAR(12) NOT NULL DEFAULT 'either',
+        preferred_date DATE, preferred_time VARCHAR(20) NOT NULL DEFAULT '', duration_min INT NOT NULL DEFAULT 60,
+        notes VARCHAR(1000) NOT NULL DEFAULT '', status VARCHAR(12) NOT NULL DEFAULT 'pending',
+        session_date DATE, session_time VARCHAR(30) NOT NULL DEFAULT '', admin_notes VARCHAR(1000) NOT NULL DEFAULT '',
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS tutoring_bookings_status_idx ON tutoring_bookings (status, id DESC)",
+    """CREATE TABLE IF NOT EXISTS ad_inquiries (
+        id BIGSERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, organisation VARCHAR(120) NOT NULL, email VARCHAR(254) NOT NULL,
+        website VARCHAR(200) NOT NULL DEFAULT '', placement VARCHAR(60) NOT NULL, budget_range VARCHAR(60) NOT NULL DEFAULT '',
+        description VARCHAR(3000) NOT NULL, status VARCHAR(12) NOT NULL DEFAULT 'new',
+        admin_notes VARCHAR(1000) NOT NULL DEFAULT '', is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS ad_inquiries_status_idx ON ad_inquiries (status, id DESC)",
+    # Newsletter list. There is no email-sending service in this site, so subscribers are exported and mailed from a proper
+    # email tool; every address gets its own unsubscribe token.
+    """CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id BIGSERIAL PRIMARY KEY, email VARCHAR(254) NOT NULL, token VARCHAR(40) UNIQUE NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS newsletter_email_idx ON newsletter_subscribers (lower(email))",
+    """CREATE TABLE IF NOT EXISTS announcements (
+        id BIGSERIAL PRIMARY KEY, title VARCHAR(120) NOT NULL, body VARCHAR(1000) NOT NULL DEFAULT '', link VARCHAR(200) NOT NULL DEFAULT '',
+        published BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""",
+    "CREATE INDEX IF NOT EXISTS announcements_idx ON announcements (published, id DESC)",
 ]

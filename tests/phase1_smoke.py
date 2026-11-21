@@ -52,8 +52,9 @@ setup.execute("CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, usernam
 setup.execute("CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, message TEXT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, is_read BOOLEAN NOT NULL DEFAULT 0)")
 setup.execute("CREATE TABLE notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, kind TEXT, title TEXT, body TEXT, link TEXT, is_read BOOLEAN DEFAULT 0, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP)")
 for st in schema.STATEMENTS:
-    if ("products" in st or "orders" in st or "service_inquiries" in st) and st.lstrip().startswith("CREATE"):
+    if st.lstrip().startswith("CREATE") and any(t in st for t in ("products", "orders", "service_inquiries", "payments", "download_log", "password_resets", "tutoring_bookings", "ad_inquiries", "newsletter_subscribers", "announcements")):
         setup.execute(st)
+setup.execute("ALTER TABLE products ADD COLUMN sponsored BOOLEAN NOT NULL DEFAULT 0")
 setup.commit(); setup.close()
 
 import psycopg

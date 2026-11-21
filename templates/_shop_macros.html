@@ -14,7 +14,7 @@
 <article class="shop-card">
   <a class="shop-media" href="{{ url_for('product_detail', slug=p.slug) }}" tabindex="-1" aria-hidden="true">{{ thumb(p) }}</a>
   <div class="shop-body">
-    <p class="shop-tags"><span class="badge">{{ p.kind_label }}</span><span class="badge">{{ p.topic or p.category }}</span></p>
+    <p class="shop-tags">{% if p.sponsored %}<span class="badge sponsored" title="A paid placement by an advertiser">Sponsored</span>{% endif %}<span class="badge">{{ p.kind_label }}</span><span class="badge">{{ p.topic or p.category }}</span></p>
     <h3><a href="{{ url_for('product_detail', slug=p.slug) }}">{{ p.title }}</a></h3>
     {% if p.summary %}<p class="shop-summary">{{ p.summary }}</p>{% endif %}
     <div class="shop-foot">

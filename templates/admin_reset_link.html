@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Reset link | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container narrow">
+  <div class="admin-top"><div><h1>Reset link for {{ username }}</h1><p>Valid for {{ minutes }} minutes and works once.</p></div></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <p>Send this link to <strong>{{ username }}</strong> privately (WhatsApp or email) after you are sure it is really them. It is shown only now and cannot be recovered; make a new one if you lose it.</p>
+    <p><input type="text" readonly value="{{ link }}" onclick="this.select()" aria-label="Password reset link"></p>
+    <div class="btn-row"><button class="admin-button" type="button" onclick="navigator.clipboard.writeText('{{ link }}').then(function(){this.textContent='Copied'}.bind(this))">Copy link</button><a class="admin-button admin-button-light" href="{{ url_for('admin_users') }}">Back to customers</a></div>
+  </div>
+</div>
+{% endblock %}

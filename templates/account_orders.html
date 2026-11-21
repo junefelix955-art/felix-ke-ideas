@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager, status_badge %}
+{% block title %}My orders | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="shop-wrap">
+  <h1>My orders</h1>
+  <p>{{ total }} order{{ '' if total == 1 else 's' }}{% if spent %} &middot; {{ spent|money }} paid so far{% endif %}. <a href="{{ url_for('account_downloads') }}">My downloads</a></p>
+  {% if orders %}
+  <div class="admin-table-wrapper"><table class="admin-table">
+    <thead><tr><th>Order</th><th>Item</th><th>Total</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for o in orders %}<tr>
+      <td><strong>{{ o.reference }}</strong><br><small>{{ o.created_at|site_time('%d %b %Y') }}</small></td>
+      <td>{% if o.slug %}<a href="{{ url_for('product_detail', slug=o.slug) }}">{{ o.title }}</a>{% else %}{{ o.title }}{% endif %}</td>
+      <td>{{ o.total|money }}</td>
+      <td>{{ status_badge(ORDER_LABEL.get(o.status, o.status), o.status) }}</td>
+      <td><div class="admin-actions"><a class="button small" href="{{ url_for('order_confirmation', token=o.token) }}">{{ 'Open' if o.status == 'paid' else 'Track / pay' }}</a>
+        {% if o.status == 'paid' %}{% if o.file_size %}<a class="button button-outline small" href="{{ url_for('order_download', token=o.token) }}">Download</a>{% endif %}<a class="button button-outline small" href="{{ url_for('order_receipt', token=o.token) }}" target="_blank" rel="noopener">Receipt</a>{% endif %}</div></td>
+    </tr>{% endfor %}</tbody></table></div>
+  {{ pager(page, pages) }}
+  {% else %}
+  <div class="empty-state"><h2>No orders yet</h2><p>When you order something while signed in, it shows up here with its payment status, download and receipt.</p><a class="button" href="{{ url_for('marketplace') }}">Browse the marketplace</a></div>
+  {% endif %}
+</div>
+{% endblock %}

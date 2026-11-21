@@ -1,0 +1,10 @@
+{# Share buttons. url must be absolute (use url_for(..., _external=True)). #}
+{% macro share(url, text, label='Share') %}
+<div class="share-row" data-share-url="{{ url }}" data-share-text="{{ text }}">
+  <span class="share-label">{{ label }}:</span>
+  <a href="https://wa.me/?text={{ (text ~ ' ' ~ url)|urlencode }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u={{ url|urlencode }}" target="_blank" rel="noopener noreferrer">Facebook</a>
+  <a href="https://twitter.com/intent/tweet?text={{ text|urlencode }}&amp;url={{ url|urlencode }}" target="_blank" rel="noopener noreferrer">X</a>
+  <button type="button" class="linklike" data-copy="{{ url }}">Copy link</button>
+</div>
+{% endmacro %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="message-card">
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <div class="btn-row center">{% for url, label, primary in buttons %}<a href="{{ url }}" class="button{% if not primary %} button-outline{% endif %}">{{ label }}</a>{% endfor %}</div>
+</section>
+{% endblock %}

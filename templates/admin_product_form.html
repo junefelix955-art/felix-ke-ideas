@@ -45,6 +45,7 @@
     <div class="check-row">
       <label class="check"><input type="checkbox" name="published"{% if form.get('published') %} checked{% endif %}> Published (visible to visitors)</label>
       <label class="check"><input type="checkbox" name="featured"{% if form.get('featured') %} checked{% endif %}> Featured (shown first, and on the home page)</label>
+      <label class="check"><input type="checkbox" name="sponsored"{% if form.get('sponsored') %} checked{% endif %}> Sponsored (a paid placement: visitors see a "Sponsored" label)</label>
     </div>
     <div class="btn-row"><button class="admin-button" type="submit">{{ 'Save changes' if p else 'Create listing' }}</button><a class="admin-button admin-button-light" href="{{ url_for('admin_marketplace') }}">Cancel</a></div>
   </form>

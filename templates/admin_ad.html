@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import status_badge %}
+{% block title %}Advertising enquiry from {{ i.org }} | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container narrow">
+  <div class="admin-top"><div><h1>Advertising enquiry</h1><p>Received {{ i.created_at|site_time }}</p></div><a class="admin-button admin-button-light" href="{{ url_for('admin_ads') }}">&larr; All enquiries</a></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <dl class="order-facts left">
+      <div><dt>Organisation</dt><dd>{{ i.org }}</dd></div>
+      <div><dt>Contact</dt><dd>{{ i.name }} &middot; <a href="mailto:{{ i.email }}">{{ i.email }}</a></dd></div>
+      {% if i.website %}<div><dt>Website</dt><dd><a href="{{ i.website }}" target="_blank" rel="noopener noreferrer nofollow">{{ i.website }}</a></dd></div>{% endif %}
+      <div><dt>Placement</dt><dd>{{ i.placement }}</dd></div>
+      <div><dt>Budget</dt><dd>{{ i.budget or 'Not given' }}</dd></div>
+    </dl>
+    <h2>Campaign</h2><p class="admin-message-text wide-text">{{ i.description }}</p>
+    <p class="field-hint">Before approving: check the claims are truthful, the content suits learners, and it will be labelled "Sponsored".</p>
+    <div class="btn-row"><a class="admin-button" href="mailto:{{ i.email }}?subject={{ ('Your advertising enquiry: ' ~ i.org)|urlencode }}">Reply by email</a></div>
+  </div>
+  <form method="POST" action="{{ url_for('admin_ad_update', aid=i.id) }}" class="admin-panel admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Review</h2>
+    <label for="ad-status">Status</label><select id="ad-status" name="status">{% for k, label in statuses %}<option value="{{ k }}"{% if i.status == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <label for="ad-notes">Private notes</label><textarea id="ad-notes" name="notes" rows="4" maxlength="1000">{{ i.notes }}</textarea>
+    <div class="btn-row"><button class="admin-button" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock %}

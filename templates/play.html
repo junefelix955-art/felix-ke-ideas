@@ -1,15 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Maths Sprint | Felix KE Ideas{% endblock %}
 {% block description %}Play Maths Sprint: answer as many sums as you can in 30 seconds and climb the leaderboard.{% endblock %}
+{% from "_share.html" import share %}
 {% block content %}
 <meta name="csrf" content="{{ csrf_token() }}">
 <section class="game">
   <h1>Maths Sprint</h1>
+  {% if challenge %}<p class="notice" role="status">A friend scored <strong>{{ challenge }}</strong> in 30 seconds. Can you beat it?</p>{% endif %}
   <p>Answer as many sums as you can in 30 seconds. Questions get harder as you score.</p>
   <div class="game-hud"><span>Time <b id="g-time">30</b></span><span>Score <b id="g-score">0</b></span><span>Best <b id="g-best">0</b></span></div>
   <div class="game-q" id="g-q" aria-live="polite">Ready?</div>
   <form id="g-form" autocomplete="off"><input type="text" id="g-ans" inputmode="numeric" pattern="-?[0-9]*" aria-label="Your answer" disabled><button type="submit" class="button" id="g-go">Start</button></form>
   <p class="game-msg" id="g-msg"></p>
+  <div id="g-share" hidden>
+    <div class="share-row"><span class="share-label">Challenge a friend:</span>
+      <a id="g-share-wa" href="#" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      <button type="button" class="linklike" id="g-share-copy" data-copy="">Copy link</button></div>
+  </div>
 </section>
 <section class="leaderboard">
   <h2>Leaderboard</h2>
@@ -42,6 +49,12 @@
     if(score>best){best=score;$("g-best").textContent=best;msg+=" New best!";try{localStorage.setItem("sprintBest",best);}catch(e){}}
     if(signed&&score>0){board({method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":token},body:JSON.stringify({score:score})});msg+=" Saved to the leaderboard.";}
     $("g-msg").textContent=msg;
+    if(score>0){
+      var link=location.origin+"{{ url_for('play') }}?challenge="+score,text="I scored "+score+" in 30 seconds on Maths Sprint. Can you beat me?";
+      $("g-share-wa").href="https://wa.me/?text="+encodeURIComponent(text+" "+link);
+      $("g-share-copy").setAttribute("data-copy",link);
+      $("g-share").hidden=false;
+    }
   }
   function start(){
     score=0;time=30;$("g-score").textContent=0;$("g-time").textContent=30;$("g-msg").textContent="";

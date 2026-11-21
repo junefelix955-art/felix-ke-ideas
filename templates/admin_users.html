@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager %}
+{% block title %}Customers | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Customers</h1><p>Member accounts. {{ total }} found. Accounts have no email address, so a forgotten password is fixed with a one-time reset link that you send to the member yourself.</p></div></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel">
+    <form method="GET" class="admin-search-form" role="search"><input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Search username" aria-label="Search members"><button class="admin-button" type="submit">Search</button><a class="admin-button admin-button-light" href="{{ url_for('admin_users') }}">Clear</a></form>
+  </div>
+  <div class="admin-panel">
+    {% if users %}
+    <div class="admin-table-wrapper"><table class="admin-table">
+      <thead><tr><th>Username</th><th>Joined</th><th>Orders</th><th>Paid</th><th></th></tr></thead>
+      <tbody>{% for u in users %}<tr>
+        <td><strong>{{ u.username }}</strong></td><td>{{ u.joined|site_time('%d %b %Y') }}</td><td>{{ u.orders }}</td><td>{{ u.paid }}</td>
+        <td><form method="POST" action="{{ url_for('admin_reset_link', uid=u.id) }}" onsubmit="return confirm('Create a one-time password reset link for this member? Any older link stops working.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="admin-button admin-button-light small" type="submit">Create reset link</button></form></td>
+      </tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% else %}<p class="admin-empty">No members match.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

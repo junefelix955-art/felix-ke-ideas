@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager %}
+{% block title %}Newsletter subscribers | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Newsletter subscribers</h1><p>{{ total }} found. This site does not send email itself: export the list and send from your email tool, and include each person's unsubscribe link.</p></div><a class="admin-button" href="{{ url_for('admin_subscribers_csv') }}">Export CSV</a></div>
+  {% include "_admin_nav.html" %}
+  <div class="admin-panel"><form method="GET" class="admin-search-form" role="search"><input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Search email" aria-label="Search subscribers"><button class="admin-button" type="submit">Search</button><a class="admin-button admin-button-light" href="{{ url_for('admin_subscribers') }}">Clear</a></form></div>
+  <div class="admin-panel">
+    {% if items %}
+    <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Email</th><th>Subscribed</th><th></th></tr></thead>
+      <tbody>{% for s in items %}<tr><td>{{ s.email }}</td><td>{{ s.created_at|site_time('%d %b %Y') }}</td>
+        <td><form method="POST" action="{{ url_for('admin_subscriber_delete', sid=s.id) }}" onsubmit="return confirm('Remove this subscriber?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button class="admin-delete-button" type="submit">Remove</button></form></td></tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% else %}<p class="admin-empty">No subscribers yet.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

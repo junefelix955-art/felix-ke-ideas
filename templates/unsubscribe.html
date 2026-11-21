@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Unsubscribe | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<section class="message-card">
+  <h1>Unsubscribe from updates?</h1>
+  <p>Press the button and your email address is removed from the newsletter list.</p>
+  <form method="POST" data-loading><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button" type="submit">Yes, unsubscribe me</button> <a class="button button-outline" href="{{ url_for('index') }}">Keep me subscribed</a></form>
+</section>
+{% endblock %}

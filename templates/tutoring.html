@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import err %}
+{% block title %}Online Tutoring | Felix KE Ideas{% endblock %}
+{% block description %}Request tutoring in Python, HTML and CSS, Flask, Excel, basic statistics and mathematics, online or in person.{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p>
+  <h1>Online tutoring and lessons</h1>
+  <p>One-to-one help with programming, maths and computer skills. Choose a subject, tell me what you want to achieve, and I'll reply with a time that works.</p>
+  <div class="hero-buttons"><a class="button" href="#book">Request a session</a></div>
+</section>
+
+<section class="shop-wrap" aria-labelledby="les-h">
+  <h2 id="les-h" class="center">What you can learn</h2>
+  <div class="shop-grid services">
+    {% for l in lessons %}
+    <article class="service-card">
+      <h3>{{ l.title }}</h3><p>{{ l.text }}</p>
+      <p class="field-hint">You will learn to:</p>
+      <ul>{% for pt in l.points %}<li>{{ pt }}</li>{% endfor %}</ul>
+      <p class="service-price">{% if l.price %}From <strong>{{ l.price|money }}</strong> per session{% else %}<strong>Price on request</strong>{% endif %}</p>
+      <a class="button button-outline small" href="{{ url_for('tutoring', subject=l.title) }}#book">Request this</a>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="legal-note">Sessions run for 30, 60 or 90 minutes, online or in person. {{ in_person_note }}</p>
+</section>
+
+<section class="shop-wrap request-section" id="book" aria-labelledby="bk-h">
+  <div class="request-card">
+    <h2 id="bk-h">Request a tutoring session</h2>
+    <p>This is a request, not a booking: I'll confirm the time with you by email. Nothing is charged by this form. Fields marked * are required.</p>
+    <form method="POST" action="{{ url_for('tutoring') }}#book" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="hp-field" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="two-col-form">
+        <div><label for="t-name">Your name *</label><input id="t-name" name="name" type="text" maxlength="100" required autocomplete="name" value="{{ form.get('name', '') }}"{% if errors.get('name') %} aria-invalid="true" aria-describedby="err-name"{% endif %}>{{ err(errors, 'name') }}</div>
+        <div><label for="t-email">Email *</label><input id="t-email" name="email" type="email" maxlength="254" required autocomplete="email" value="{{ form.get('email', '') }}"{% if errors.get('email') %} aria-invalid="true" aria-describedby="err-email"{% endif %}>{{ err(errors, 'email') }}</div>
+        <div><label for="t-phone">Phone / WhatsApp</label><input id="t-phone" name="phone" type="tel" maxlength="25" autocomplete="tel" placeholder="0712 345 678" value="{{ form.get('phone', '') }}"{% if errors.get('phone') %} aria-invalid="true" aria-describedby="err-phone"{% endif %}>{{ err(errors, 'phone') }}</div>
+        <div><label for="t-subject">Subject *</label><select id="t-subject" name="subject" required{% if errors.get('subject') %} aria-invalid="true" aria-describedby="err-subject"{% endif %}><option value="">Choose one...</option>{% for s in subjects %}<option{% if form.get('subject') == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>{{ err(errors, 'subject') }}</div>
+        <div><label for="t-level">Your level *</label><select id="t-level" name="level" required{% if errors.get('level') %} aria-invalid="true" aria-describedby="err-level"{% endif %}><option value="">Choose one...</option>{% for s in levels %}<option{% if form.get('level') == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>{{ err(errors, 'level') }}</div>
+        <div><label for="t-mode">Online or in person? *</label><select id="t-mode" name="mode" required{% if errors.get('mode') %} aria-invalid="true" aria-describedby="err-mode"{% endif %}><option value="">Choose one...</option>{% for k, label in modes %}<option value="{{ k }}"{% if form.get('mode') == k %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ err(errors, 'mode') }}</div>
+        <div><label for="t-date">Preferred date <span class="optional">(optional)</span></label><input id="t-date" name="preferred_date" type="date" min="{{ min_date }}" max="{{ max_date }}" value="{{ form.get('preferred_date', '') }}"{% if errors.get('preferred_date') %} aria-invalid="true" aria-describedby="err-preferred_date"{% endif %}>{{ err(errors, 'preferred_date') }}</div>
+        <div><label for="t-time">Preferred time <span class="optional">(optional)</span></label><select id="t-time" name="preferred_time"><option value="">No preference</option>{% for s in times %}<option{% if form.get('preferred_time') == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>{{ err(errors, 'preferred_time') }}</div>
+        <div><label for="t-dur">Session length *</label><select id="t-dur" name="duration">{% for d in durations %}<option value="{{ d }}"{% if (form.get('duration') or '60')|string == d|string %} selected{% endif %}>{{ d }} minutes</option>{% endfor %}</select>{{ err(errors, 'duration') }}</div>
+      </div>
+      <label for="t-notes">What do you want to learn or achieve? <span class="optional">(optional)</span></label>
+      <textarea id="t-notes" name="notes" rows="4" maxlength="1000" placeholder="e.g. I am preparing for an exam, or I want to build my first website.">{{ form.get('notes', '') }}</textarea>{{ err(errors, 'notes') }}
+      <button class="button wide" type="submit">Send my request</button>
+      <p class="field-hint">I only use your details to reply about tutoring. See the <a href="{{ url_for('privacy') }}">privacy summary</a>.</p>
+    </form>
+  </div>
+</section>
+{% endblock %}

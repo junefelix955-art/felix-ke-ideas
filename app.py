@@ -21,7 +21,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import psycopg.errors
 
 import features
-from features import business, common as fc
+from features import business, growth, common as fc
 
 load_dotenv()
 
@@ -181,6 +181,8 @@ WRITE_LIMIT, WRITE_WINDOW = 90, 60  # at most 90 writes per minute per signed-in
 def throttle_writes():
     if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
         return None
+    if request.endpoint == "mpesa_callback":  # server-to-server calls from Safaricom, protected by a secret URL instead
+        return None
     key = ("u", session["user_id"]) if session.get("user_id") else ("ip", request.remote_addr)
     now = time.time()
     hits = [t for t in _WRITE_HITS.get(key, ()) if now - t < WRITE_WINDOW]
@@ -254,11 +256,12 @@ def server_error(e):
 # ---------- Public pages ----------
 @app.route("/")
 def index():
-    shop = {"featured": [], "free": []}
+    shop = {"featured": [], "free": [], "updates": []}
     try:
         c = get_db_connection()
         try:
             shop = business.home_data(c)
+            shop["updates"] = growth.latest_updates(c)
         finally:
             c.close()
     except Exception:
@@ -375,6 +378,7 @@ def admin():
             "SELECT id, name, email, message, created_at, is_read FROM messages" + sql_where +
             " ORDER BY id DESC LIMIT %s OFFSET %s", tuple(params) + (per_page, (page - 1) * per_page)).fetchall()
         overview = business.admin_overview(connection)
+        overview.update(growth.admin_overview(connection))
     finally:
         connection.close()
 
@@ -844,7 +848,12 @@ def api_scores():
 
 @app.route("/play")
 def play():
-    return render_template("play.html")
+    # ?challenge=NN comes from a friend's share link: clamp it to a sane number so it can never carry anything else
+    try:
+        challenge = max(0, min(int(request.args.get("challenge", "0")), 100))
+    except ValueError:
+        challenge = 0
+    return render_template("play.html", challenge=challenge)
 
 
 # ======================================================================

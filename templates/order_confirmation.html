@@ -3,26 +3,75 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block content %}
 <section class="confirm-card">
-  <p class="confirm-tick" aria-hidden="true">&#10003;</p>
-  <h1>Thank you, {{ o.name }}.</h1>
-  <p>Your order has been received. Keep this reference: you can quote it when you contact me.</p>
+  <p class="confirm-tick" aria-hidden="true">{{ '&#10003;'|safe if paid else '&#9201;'|safe }}</p>
+  <h1>{% if paid %}Payment received, {{ o.name }}.{% else %}Thank you, {{ o.name }}.{% endif %}</h1>
+  <p>{% if paid %}Your order is paid and complete.{% else %}Your order has been received. Keep this reference: you can quote it when you contact me.{% endif %}</p>
   <p class="order-ref" aria-label="Order reference">{{ o.reference }}</p>
   <dl class="order-facts">
     <div><dt>Item</dt><dd>{% if o.slug %}<a href="{{ url_for('product_detail', slug=o.slug) }}">{{ o.title }}</a>{% else %}{{ o.title }}{% endif %}</dd></div>
     <div><dt>Total</dt><dd>{{ o.total|money }}</dd></div>
-    <div><dt>Status</dt><dd>{{ ORDER_LABEL.get(o.status, o.status) }}</dd></div>
+    <div><dt>Status</dt><dd id="order-status">{{ ORDER_LABEL.get(o.status, o.status) }}</dd></div>
+    {% if paid and pay and pay.receipt %}<div><dt>M-Pesa receipt</dt><dd>{{ pay.receipt }}</dd></div>{% endif %}
     <div><dt>Placed</dt><dd>{{ o.created_at|site_time }}</dd></div>
     <div><dt>Contact email</dt><dd>{{ o.email }}</dd></div>
   </dl>
-  <h2>What happens next</h2>
-  <ol class="next-steps">
-    <li>I'll contact you at <strong>{{ o.email }}</strong> to confirm the order and share payment instructions.</li>
-    <li>Once payment is confirmed, you receive your item.</li>
-  </ol>
-  <p class="field-hint">Please save this page's link. Anyone who has it can view this confirmation, so don't share it publicly.</p>
+
+  {% if paid %}
+    <div class="btn-row center">
+      {% if o.file_size %}<a class="button" href="{{ url_for('order_download', token=token) }}">Download your file</a>{% endif %}
+      <a class="button button-outline" href="{{ url_for('order_receipt', token=token) }}" target="_blank" rel="noopener">View / print receipt</a>
+    </div>
+    {% if not o.file_size %}<p class="field-hint">This item has no instant download. I'll deliver it to <strong>{{ o.email }}</strong> or contact you about next steps.</p>{% endif %}
+  {% elif waiting %}
+    <section class="pay-box" aria-live="polite"><h2>Check your phone</h2>
+      <p id="pay-msg">A payment request for <strong>{{ o.total|money }}</strong> was sent to {{ pay.phone[:5] }}***{{ pay.phone[-3:] }}. Enter your M-Pesa PIN there to finish. This page updates by itself.</p>
+      <p class="field-hint">Never share your PIN with anyone. This website never asks for it.</p></section>
+  {% elif can_pay %}
+    <section class="pay-box"><h2>Pay with M-Pesa</h2>
+      {% if pay and pay.status == 'failed' %}<p class="field-error" role="alert">Last attempt: {{ pay.desc or 'the payment did not go through' }}. You have not been charged unless M-Pesa sent you a confirmation message. You can try again.</p>{% endif %}
+      <p>You will get a prompt on your phone to approve <strong>{{ o.total|money }}</strong>.</p>
+      <form method="POST" action="{{ url_for('order_pay', token=token) }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="pay-phone">Safaricom number</label>
+        <input id="pay-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="0712 345 678" required value="{{ phone_default }}">
+        <button class="button wide" type="submit">Pay {{ o.total|money }} with M-Pesa</button>
+      </form>
+      <p class="field-hint">You type your PIN on your phone, never on this site.</p></section>
+  {% elif o.status != 'cancelled' %}
+    <h2>What happens next</h2>
+    <ol class="next-steps">
+      <li>I'll contact you at <strong>{{ o.email }}</strong> to confirm the order and share payment instructions.</li>
+      <li>Once payment is confirmed, you receive your item.</li>
+    </ol>
+  {% else %}<p class="notice">This order was cancelled.</p>{% endif %}
+
+  {% if can_claim %}
+  <form method="POST" action="{{ url_for('order_claim', token=token) }}" class="claim-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button button-outline small" type="submit">Add this order to my account</button></form>
+  {% elif not current_user and not paid %}
+  <p class="field-hint"><a href="{{ url_for('signin') }}">Sign in</a> or <a href="{{ url_for('register') }}">create a free account</a> to keep a history of your orders and downloads.</p>
+  {% endif %}
+  <p class="field-hint">Save this page's link. Anyone who has it can view this order, so don't share it publicly.</p>
   <div class="btn-row center">
-    {% if whatsapp_number %}<a class="button" href="https://wa.me/{{ whatsapp_number }}?text={{ ('Hello, I placed order ' ~ o.reference ~ ' on Felix KE Ideas.')|urlencode }}" target="_blank" rel="noopener noreferrer">Message on WhatsApp</a>{% endif %}
+    {% if whatsapp_number %}<a class="button button-outline" href="https://wa.me/{{ whatsapp_number }}?text={{ ('Hello, about order ' ~ o.reference ~ ' on Felix KE Ideas.')|urlencode }}" target="_blank" rel="noopener noreferrer">Message on WhatsApp</a>{% endif %}
     <a class="button button-outline" href="{{ url_for('marketplace') }}">Keep browsing</a>
   </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{% if waiting %}
+<script>
+(function(){
+  var url="{{ url_for('order_status', token=token) }}",msg=document.getElementById('pay-msg'),tries=0;
+  function check(){
+    tries++;
+    fetch(url,{headers:{Accept:"application/json"},cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
+      if(d.state==="paid"||d.state==="failed"){location.reload();return;}
+      if(tries<60)setTimeout(check,3000);else if(msg)msg.textContent="Still waiting. If you already paid, refresh this page in a minute. I'll also see the payment on my side.";
+    }).catch(function(){if(tries<60)setTimeout(check,5000);});
+  }
+  setTimeout(check,3000);
+})();
+</script>
+{% endif %}
 {% endblock %}

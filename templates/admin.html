@@ -7,11 +7,16 @@
   <div class="admin-top"><div><h1>Admin dashboard</h1><p>Your messages, shop and website requests in one place.</p></div></div>
   {% include "_admin_nav.html" %}
 
-  <div class="admin-stats four">
+  <div class="admin-stats six">
     <a class="admin-stat" href="{{ url_for('admin', show='unread') }}"><span>{{ unread_messages }}</span>Unread messages</a>
     <a class="admin-stat" href="{{ url_for('admin_inquiries', unread=1) }}"><span>{{ overview.new_inquiries }}</span>New website requests</a>
     <a class="admin-stat" href="{{ url_for('admin_orders', status='pending') }}"><span>{{ overview.open_orders }}</span>Orders awaiting payment</a>
     <a class="admin-stat" href="{{ url_for('admin_marketplace', status='published') }}"><span>{{ overview.published }}<small> / {{ overview.products }}</small></span>Listings live</a>
+    <a class="admin-stat" href="{{ url_for('admin_payments', status='success') }}"><span>{{ overview.revenue|money }}</span>Verified revenue ({{ overview.paid_orders }} paid order{{ '' if overview.paid_orders == 1 else 's' }})</a>
+    <a class="admin-stat" href="{{ url_for('admin_payments', status='duplicate') }}"><span>{{ overview.to_review }}</span>Payments to review</a>
+    <a class="admin-stat" href="{{ url_for('admin_bookings', status='pending') }}"><span>{{ overview.bookings_pending }}</span>Tutoring requests pending</a>
+    <a class="admin-stat" href="{{ url_for('admin_ads', unread=1) }}"><span>{{ overview.ads_new }}</span>New advertising enquiries</a>
+    <a class="admin-stat" href="{{ url_for('admin_subscribers') }}"><span>{{ overview.subscribers }}</span>Newsletter subscribers</a>
   </div>
 
   <div class="admin-panel">

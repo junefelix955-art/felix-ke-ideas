@@ -6,7 +6,7 @@
 <div class="admin-container">
   <div class="admin-top"><div><h1>Orders</h1><p>Order requests from the marketplace. {{ total }} found.</p></div></div>
   {% include "_admin_nav.html" %}
-  <p class="notice">Online payment is not connected yet, so orders arrive as requests. Contact the customer to agree payment. "Paid" is reserved for payments verified by the payment provider (coming in the next update) and cannot be set by hand.</p>
+  <p class="notice">"Paid" is set only when M-Pesa confirms a payment (see <a href="{{ url_for('admin_payments') }}">Payments</a>). It can't be set by hand. If online payment isn't switched on, contact the customer to agree payment.</p>
   <div class="admin-panel">
     <form method="GET" class="admin-search-form" role="search">
       <input type="text" name="q" value="{{ f.get('q', '') }}" placeholder="Reference, name, email or item" aria-label="Search orders">
@@ -27,7 +27,7 @@
         <td>{{ o.name }}<br><a href="mailto:{{ o.email }}?subject={{ ('Your order ' ~ o.reference)|urlencode }}">{{ o.email }}</a>
           {% if o.phone %}<br><a href="tel:{{ o.phone }}">{{ o.phone }}</a> &middot; <a href="https://wa.me/{{ o.phone|wa_digits }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
           {% if o.note %}<br><small class="admin-message-text">Note: {{ o.note }}</small>{% endif %}</td>
-        <td>{{ status_badge(ORDER_LABEL.get(o.status, o.status), o.status) }}</td>
+        <td>{{ status_badge(ORDER_LABEL.get(o.status, o.status), o.status) }}{% if o.receipt %}<br><small>{{ o.receipt }}</small>{% endif %}</td>
         <td>{% if o.status in settable %}
           <form method="POST" action="{{ url_for('admin_order_status', oid=o.id) }}" class="status-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
             <select name="status" aria-label="New status for {{ o.reference }}">{% for s in settable %}<option value="{{ s }}"{% if o.status == s %} selected{% endif %}>{{ ORDER_LABEL[s] }}</option>{% endfor %}</select>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import pager %}
+{% block title %}Announcements | Felix KE Ideas{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="admin-container">
+  <div class="admin-top"><div><h1>Announcements</h1><p>News shown on the Updates page and the home page. <a href="{{ url_for('admin_subscribers') }}">Newsletter subscribers</a></p></div></div>
+  {% include "_admin_nav.html" %}
+  <form method="POST" action="{{ url_for('admin_update_new') }}" class="admin-panel admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>New announcement</h2>
+    <label for="u-title">Title *</label><input id="u-title" name="title" type="text" maxlength="120" required>
+    <label for="u-body">Message <span class="optional">(plain text)</span></label><textarea id="u-body" name="body" rows="3" maxlength="1000"></textarea>
+    <label for="u-link">Link <span class="optional">(optional: a page like /learn, or a full https:// address)</span></label><input id="u-link" name="link" type="text" maxlength="200">
+    <div class="btn-row"><button class="admin-button" type="submit">Post announcement</button></div>
+  </form>
+  <div class="admin-panel">
+    {% if items %}
+    <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Posted</th><th>Announcement</th><th>Visible</th><th>Actions</th></tr></thead>
+      <tbody>{% for u in items %}<tr><td>{{ u.created_at|site_time('%d %b %Y') }}</td><td><strong>{{ u.title }}</strong>{% if u.body %}<br><small class="admin-message-text">{{ u.body }}</small>{% endif %}</td>
+        <td>{% if u.published %}<span class="badge good">Published</span>{% else %}<span class="badge muted-pill">Hidden</span>{% endif %}</td>
+        <td><div class="admin-actions">
+          <form method="POST" action="{{ url_for('admin_update_toggle', uid=u.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button class="admin-button admin-button-light small" type="submit">{{ 'Hide' if u.published else 'Publish' }}</button></form>
+          <form method="POST" action="{{ url_for('admin_update_delete', uid=u.id) }}" onsubmit="return confirm('Delete this announcement permanently?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="admin-delete-button" type="submit">Delete</button></form></div></td></tr>{% endfor %}</tbody></table></div>
+    {{ pager(page, pages) }}
+    {% else %}<p class="admin-empty">No announcements yet.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_shop_macros.html" import err %}
+{% block title %}Advertise With Us | Felix KE Ideas{% endblock %}
+{% block description %}Reach learners and aspiring developers with clearly labelled sponsored content and advertising on Felix KE Ideas.{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p>
+  <h1>Advertise with us</h1>
+  <p>Reach students, learners and people building digital skills. Every advertisement and sponsored item on this site is clearly labelled.</p>
+  <div class="hero-buttons"><a class="button" href="#enquire">Send an enquiry</a></div>
+</section>
+
+<section class="shop-wrap" aria-labelledby="pl-h">
+  <h2 id="pl-h" class="center">Ways to work together</h2>
+  <div class="shop-grid services">
+    {% for name, text in placements %}
+    <article class="service-card"><h3>{{ name }}</h3><p>{{ text }}</p><p class="service-price"><strong>Request a quote</strong></p>
+      <a class="button button-outline small" href="{{ url_for('advertise', placement=name) }}#enquire">Ask about this</a></article>
+    {% endfor %}
+  </div>
+  <div class="standards">
+    <h2>Our advertising standards</h2>
+    <ul>
+      <li>Every paid placement is labelled <span class="badge sponsored">Sponsored</span> so visitors always know what is an advertisement.</li>
+      <li>No misleading claims, fake urgency or fake reviews. I may ask you to change or remove claims I can't support.</li>
+      <li>Content must be relevant and appropriate for learners. I can decline any campaign.</li>
+      <li>Nothing is booked or charged until we have agreed the details in writing.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="shop-wrap request-section" id="enquire" aria-labelledby="enq-h">
+  <div class="request-card">
+    <h2 id="enq-h">Advertising enquiry</h2>
+    <p>Tell me about your organisation and what you would like to promote. Fields marked * are required.</p>
+    <form method="POST" action="{{ url_for('advertise') }}#enquire" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="hp-field" aria-hidden="true"><label>Leave this empty<input type="text" name="website_url_hp" tabindex="-1" autocomplete="off"></label></div>
+      <div class="two-col-form">
+        <div><label for="a-name">Your name *</label><input id="a-name" name="name" type="text" maxlength="100" required autocomplete="name" value="{{ form.get('name', '') }}"{% if errors.get('name') %} aria-invalid="true" aria-describedby="err-name"{% endif %}>{{ err(errors, 'name') }}</div>
+        <div><label for="a-org">Organisation *</label><input id="a-org" name="organisation" type="text" maxlength="120" required autocomplete="organization" value="{{ form.get('organisation', '') }}"{% if errors.get('organisation') %} aria-invalid="true" aria-describedby="err-organisation"{% endif %}>{{ err(errors, 'organisation') }}</div>
+        <div><label for="a-email">Email *</label><input id="a-email" name="email" type="email" maxlength="254" required autocomplete="email" value="{{ form.get('email', '') }}"{% if errors.get('email') %} aria-invalid="true" aria-describedby="err-email"{% endif %}>{{ err(errors, 'email') }}</div>
+        <div><label for="a-site">Website <span class="optional">(optional)</span></label><input id="a-site" name="website" type="url" maxlength="200" placeholder="https://" value="{{ form.get('website', '') }}"{% if errors.get('website') %} aria-invalid="true" aria-describedby="err-website"{% endif %}>{{ err(errors, 'website') }}</div>
+        <div><label for="a-place">Placement *</label><select id="a-place" name="placement" required{% if errors.get('placement') %} aria-invalid="true" aria-describedby="err-placement"{% endif %}><option value="">Choose one...</option>{% for p in placement_names %}<option{% if form.get('placement') == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select>{{ err(errors, 'placement') }}</div>
+        <div><label for="a-budget">Budget range *</label><select id="a-budget" name="budget" required{% if errors.get('budget') %} aria-invalid="true" aria-describedby="err-budget"{% endif %}><option value="">Choose one...</option>{% for b in budgets %}<option{% if form.get('budget') == b %} selected{% endif %}>{{ b }}</option>{% endfor %}</select>{{ err(errors, 'budget') }}</div>
+      </div>
+      <label for="a-desc">Campaign description *</label>
+      <textarea id="a-desc" name="description" rows="6" maxlength="3000" required placeholder="What do you want to promote, to whom, and for how long?"{% if errors.get('description') %} aria-invalid="true" aria-describedby="err-description"{% endif %}>{{ form.get('description', '') }}</textarea>{{ err(errors, 'description') }}
+      <button class="button wide" type="submit">Send enquiry</button>
+      <p class="field-hint">See the <a href="{{ url_for('privacy') }}">privacy summary</a> for how your details are used.</p>
+    </form>
+  </div>
+</section>
+{% endblock %}
