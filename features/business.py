@@ -308,9 +308,20 @@ def register(app, h):
         c = h.get_db_connection()
         try:
             items, total, page, pages = catalogue(c, request.args, force_kind="resource")
+            featured_rows = c.execute(
+                "SELECT " + COLS + " FROM products p WHERE p.published AND p.kind = 'resource' AND p.featured "
+                "ORDER BY p.id DESC LIMIT 3"
+            ).fetchall()
+            featured_items = [product_dict(r) for r in featured_rows]
+            topic_rows = c.execute(
+                "SELECT p.topic, COUNT(*) FROM products p WHERE p.published AND p.kind = 'resource' "
+                "AND p.topic IS NOT NULL AND p.topic <> '' GROUP BY p.topic"
+            ).fetchall()
+            topic_counts = {topic: count for topic, count in topic_rows}
         finally:
             c.close()
-        return render_template("learn.html", items=items, total=total, page=page, pages=pages, f=request.args)
+        return render_template("learn.html", items=items, total=total, page=page, pages=pages,
+                               featured_items=featured_items, topic_counts=topic_counts, f=request.args)
 
     # ------------------------------------------------------------ public: product page
     def show_product(slug, form=None, errors=None, status=200, count_view=True):

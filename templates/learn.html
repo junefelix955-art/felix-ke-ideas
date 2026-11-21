@@ -1,30 +1,95 @@
 {% extends "base.html" %}
 {% from "_shop_macros.html" import product_card, pager %}
-{% block title %}Learn | Felix KE Ideas{% endblock %}
-{% block description %}Free and premium learning resources: Python, HTML and CSS, Flask, Excel, statistics, mathematics and data analysis.{% endblock %}
+{% block title %}Learning Hub | Felix KE Ideas{% endblock %}
+{% block description %}Explore free and premium learning resources in programming, mathematics, statistics, Excel and data analysis. Find notes, guides and practical tutorials.{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <p class="kicker">Code &bull; Learn &bull; Build &bull; Grow</p>
-  <h1>Learning resources</h1>
-  <p>Notes, guides and tutorials on programming, maths and data analysis. Preview first, then download free resources or order premium ones.</p>
+<section class="learn-hero">
+  <div class="learn-hero-inner">
+    <div class="learn-hero-copy">
+      <p class="kicker">FELIX KE IDEAS · LEARNING HUB</p>
+      <h1>Learn something.<br><span>Build something.</span></h1>
+      <p>Explore notes, practical guides and tutorials designed to help you move from understanding the basics to applying what you learn.</p>
+      <div class="learn-hero-actions">
+        <a class="button" href="#browse-learning">Explore resources</a>
+        <a class="button button-outline" href="{{ url_for('library') }}">Open Academic Library</a>
+      </div>
+      <div class="learn-hero-points"><span>✓ Beginner-friendly topics</span><span>✓ Free and premium materials</span><span>✓ Learn at your own pace</span></div>
+    </div>
+    <div class="learn-hero-art" aria-hidden="true">
+      <div class="learn-art-orbit orbit-one"></div><div class="learn-art-orbit orbit-two"></div>
+      <div class="learn-art-card art-card-main"><span class="art-icon">⌘</span><strong>LEARN</strong><small>Explore · Practise · Grow</small></div>
+      <div class="learn-art-card art-card-code"><span>01 / CODE</span><b>print("Hello, world!")</b></div>
+      <div class="learn-art-card art-card-math"><span>02 / MATHS</span><b>f(x) = x² + 2x</b></div>
+      <div class="learn-art-dot dot-one"></div><div class="learn-art-dot dot-two"></div>
+    </div>
+  </div>
 </section>
-<div class="shop-wrap">
-  <form method="GET" class="shop-filters" role="search" data-loading>
-    <div class="grow"><label for="q">Search by title or topic</label><input type="search" id="q" name="q" value="{{ f.get('q', '') }}" maxlength="60" placeholder="e.g. Flask, regression, CSS grid"></div>
-    <div><label for="topic">Topic</label><select id="topic" name="topic"><option value="">All topics</option>{% for t in RESOURCE_TOPICS %}<option{% if f.get('topic') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
-    <div><label for="price">Access</label><select id="price" name="price"><option value="">Free and premium</option><option value="free"{% if f.get('price') == 'free' %} selected{% endif %}>Free only</option><option value="paid"{% if f.get('price') == 'paid' %} selected{% endif %}>Premium only</option></select></div>
-    <div><label for="sort">Sort by</label><select id="sort" name="sort"><option value="">Newest</option><option value="popular"{% if f.get('sort') == 'popular' %} selected{% endif %}>Most popular</option><option value="price_asc"{% if f.get('sort') == 'price_asc' %} selected{% endif %}>Price: low to high</option></select></div>
-    <div class="btn-cell"><button class="button" type="submit">Search</button><a class="button button-outline" href="{{ url_for('learn') }}">Clear</a></div>
-  </form>
-  <p class="shop-count" aria-live="polite">{{ total }} resource{{ '' if total == 1 else 's' }} found</p>
-  {% if items %}
-  <div class="shop-grid">{% for p in items %}{{ product_card(p) }}{% endfor %}</div>
-  {{ pager(page, pages) }}
-  {% elif f.get('q') or f.get('topic') or f.get('price') %}
-  <div class="empty-state"><h2>No resources match that search</h2><p>Try another topic or clear the filters.</p><a class="button" href="{{ url_for('learn') }}">Show all resources</a></div>
-  {% else %}
-  <div class="empty-state"><h2>Resources are on the way</h2><p>Free notes and guides will appear here soon. Meanwhile, the community shares tips and solved problems every day.</p><a class="button" href="{{ url_for('community') }}">Visit the community</a></div>
+
+<div class="learn-wrap">
+  <section class="learn-subjects" aria-labelledby="learn-subject-heading">
+    <div class="learn-section-heading">
+      <div><p class="kicker">FIND YOUR SUBJECT</p><h2 id="learn-subject-heading">What do you want to learn?</h2></div>
+      <a href="#browse-learning" class="learn-text-link">Browse all resources →</a>
+    </div>
+    <div class="learn-subject-grid">
+      {% set subject_icons = {'Python':'⌘','HTML and CSS':'◇','Flask':'⚙','Excel':'▦','Statistics':'▥','Mathematics':'∑','Data analysis':'⌁'} %}
+      {% for topic in RESOURCE_TOPICS %}
+      <a class="learn-subject" href="{{ url_for('learn', topic=topic) }}">
+        <span class="learn-subject-icon" aria-hidden="true">{{ subject_icons.get(topic, '✦') }}</span>
+        <span class="learn-subject-name">{{ topic }}</span>
+        <span class="learn-subject-count">{{ topic_counts.get(topic, 0) }} resource{{ '' if topic_counts.get(topic, 0) == 1 else 's' }}</span>
+        <span class="learn-subject-arrow" aria-hidden="true">↗</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if featured_items and not (f.get('q') or f.get('topic') or f.get('price')) %}
+  <section class="learn-featured" aria-labelledby="learn-featured-heading">
+    <div class="learn-section-heading">
+      <div><p class="kicker">HAND-PICKED FOR YOU</p><h2 id="learn-featured-heading">Featured learning materials</h2><p class="learn-section-subtitle">A few resources highlighted by the Felix KE Ideas team.</p></div>
+    </div>
+    <div class="shop-grid learn-featured-grid">{% for p in featured_items %}{{ product_card(p) }}{% endfor %}</div>
+  </section>
   {% endif %}
-  <p class="legal-note">Every resource here is original or shared with permission from its owner.</p>
+
+  <section class="learn-browse" id="browse-learning" aria-labelledby="learn-browse-heading">
+    <div class="learn-section-heading">
+      <div><p class="kicker">THE RESOURCE COLLECTION</p><h2 id="learn-browse-heading">Explore learning resources</h2><p class="learn-section-subtitle">Search by title, topic or subject and choose the access type that works for you.</p></div>
+      <a href="{{ url_for('library') }}" class="learn-library-link"><span aria-hidden="true">▤</span><span><strong>Looking for lecture notes?</strong><small>Visit the student Academic Library →</small></span></a>
+    </div>
+    <form method="GET" class="shop-filters learn-filters" role="search" data-loading>
+      <div class="grow"><label for="q">Search resources</label><input type="search" id="q" name="q" value="{{ f.get('q', '') }}" maxlength="60" placeholder="Try Python, regression, calculus or Flask"></div>
+      <div><label for="topic">Subject</label><select id="topic" name="topic"><option value="">All subjects</option>{% for t in RESOURCE_TOPICS %}<option value="{{ t }}"{% if f.get('topic') == t %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+      <div><label for="price">Access</label><select id="price" name="price"><option value="">Free and premium</option><option value="free"{% if f.get('price') == 'free' %} selected{% endif %}>Free only</option><option value="paid"{% if f.get('price') == 'paid' %} selected{% endif %}>Premium only</option></select></div>
+      <div><label for="sort">Sort by</label><select id="sort" name="sort"><option value="">Featured and newest</option><option value="popular"{% if f.get('sort') == 'popular' %} selected{% endif %}>Most popular</option><option value="price_asc"{% if f.get('sort') == 'price_asc' %} selected{% endif %}>Price: low to high</option></select></div>
+      <div class="btn-cell"><button class="button" type="submit">Find resources</button><a class="button button-outline" href="{{ url_for('learn') }}">Clear</a></div>
+    </form>
+    <div class="learn-results-bar"><p class="shop-count" aria-live="polite">{{ total }} resource{{ '' if total == 1 else 's' }} found</p>{% if f.get('topic') or f.get('q') or f.get('price') %}<span class="learn-filter-note">Filtered results</span>{% endif %}</div>
+    {% if items %}
+      <div class="shop-grid">{% for p in items %}{{ product_card(p) }}{% endfor %}</div>
+      {{ pager(page, pages) }}
+    {% elif f.get('q') or f.get('topic') or f.get('price') %}
+      <div class="empty-state"><h2>No resources match those filters</h2><p>Try another search term or choose a different subject or access type.</p><a class="button" href="{{ url_for('learn') }}">Show all resources</a></div>
+    {% else %}
+      <div class="learn-empty-state"><div class="learn-empty-icon" aria-hidden="true">✦</div><h3>The collection is growing</h3><p>There are no published Learning Hub resources yet. Check back as new guides and materials are added, or explore student-shared notes in the Academic Library.</p><div><a class="button" href="{{ url_for('library') }}">Explore Academic Library</a><a class="button button-outline" href="{{ url_for('community') }}">Visit Community</a></div></div>
+    {% endif %}
+  </section>
+
+  <section class="learn-paths" aria-labelledby="learn-paths-heading">
+    <div class="learn-section-heading"><div><p class="kicker">A SIMPLE WAY TO START</p><h2 id="learn-paths-heading">Choose a learning direction</h2><p class="learn-section-subtitle">Use these suggested sequences to organise your learning. They are guides, not courses you need to enrol in.</p></div></div>
+    <div class="learn-path-grid">
+      <article class="learn-path-card"><span class="learn-path-number">01</span><div><h3>Start with programming</h3><p>Build confidence with Python basics, practise problem-solving, then explore web development.</p><a href="{{ url_for('learn', topic='Python') }}">Explore Python →</a></div><span class="learn-path-tags">Python · Flask · HTML &amp; CSS</span></article>
+      <article class="learn-path-card"><span class="learn-path-number">02</span><div><h3>Strengthen your maths</h3><p>Revise core mathematical ideas and connect theory with worked examples and practice.</p><a href="{{ url_for('learn', topic='Mathematics') }}">Explore Mathematics →</a></div><span class="learn-path-tags">Mathematics · Statistics</span></article>
+      <article class="learn-path-card"><span class="learn-path-number">03</span><div><h3>Explore data skills</h3><p>Learn to organise information, understand statistics and develop practical analysis skills.</p><a href="{{ url_for('learn', topic='Data analysis') }}">Explore Data Analysis →</a></div><span class="learn-path-tags">Excel · Statistics · Data analysis</span></article>
+    </div>
+  </section>
+
+  <section class="learn-library-banner">
+    <div class="learn-library-symbol" aria-hidden="true">▤</div>
+    <div><p class="kicker">SHARED BY STUDENTS</p><h2>Need university notes and past papers?</h2><p>The Academic Library is a separate space where students can share and discover academic materials.</p></div>
+    <a class="button" href="{{ url_for('library') }}">Go to Academic Library →</a>
+  </section>
+  <p class="legal-note">Resources are provided by their respective contributors. Always check the resource details and usage permissions before sharing materials.</p>
 </div>
 {% endblock %}
