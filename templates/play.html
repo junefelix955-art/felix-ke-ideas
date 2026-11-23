@@ -65,11 +65,11 @@
     }).catch(function(err){$("g-msg").textContent=err.message+" Please reload and try another round.";$("g-go").disabled=false;$("g-go").textContent="Play again";});
   }
   function start(){if(busy)return;busy=true;$("g-go").disabled=true;$("g-msg").textContent="Starting round…";
-    post(startApi,{}).then(function(d){score=0;time=30;ended=false;$("g-score").textContent=0;$("g-time").textContent=30;$("g-q").textContent=d.question;$("g-ans").value="";$("g-ans").disabled=false;$("g-go").textContent="Answer";$("g-msg").textContent="";$("g-share").hidden=true;$("g-ans").focus();
+    post(startApi,{}).then(function(d){score=0;time=30;ended=false;$("g-score").textContent=0;$("g-time").textContent=30;$("g-q").textContent=d.question;$("g-ans").value="";$("g-ans").disabled=false;$("g-go").disabled=false;$("g-go").textContent="Answer";$("g-msg").textContent="";$("g-share").hidden=true;$("g-ans").focus();
       timer=setInterval(function(){time--;$("g-time").textContent=Math.max(0,time);if(time<=0){clearInterval(timer);if(!busy)end();}},1000);
     }).catch(function(err){$("g-msg").textContent=err.message;$("g-go").disabled=false;}).finally(function(){busy=false;});
   }
-  $("g-form").addEventListener("submit",function(e){e.preventDefault();if(ended)return;if($("g-ans").disabled){start();return;}if(busy)return;
+  $("g-form").addEventListener("submit",function(e){e.preventDefault();if($("g-ans").disabled){start();return;}if(ended||busy)return;
     var value=$("g-ans").value.trim();if(!/^-?\d+$/.test(value)){$("g-msg").textContent="Enter a whole-number answer.";return;}
     busy=true;$("g-go").disabled=true;
     post(answerApi,{answer:value}).then(function(d){score=d.score;$("g-score").textContent=score;$("g-q").textContent=d.question;$("g-ans").value="";$("g-msg").textContent=d.correct?"Correct!":"Not quite. Keep going!";$("g-ans").focus();})
